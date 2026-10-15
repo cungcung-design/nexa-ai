@@ -28,3 +28,16 @@ backups/
 # OS
 .DS_Store
 Thumbs.db
+
+# Test data
+apps/api/nexa-test*.txt
+apps/api/storage/
+apps/api/.coverage
+
+# Backup files
+*.bak
+*.xaml
+
+# Test files
+apps/web/src/app/dashboard/organizations/*/test.txt
+apps/web/test-results/
