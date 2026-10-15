@@ -1,0 +1,145 @@
+name: nexa-ai
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: nexa-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_USER: nexa
+      POSTGRES_PASSWORD: nexa_local_dev
+      POSTGRES_DB: nexa_ai
+
+    ports:
+      - "127.0.0.1:5435:5432"
+
+    volumes:
+      - nexa_postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+    networks:
+      - internal
+
+  redis:
+    image: redis:7-alpine
+    container_name: nexa-redis
+    restart: unless-stopped
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --maxmemory
+      - 256mb
+      - --maxmemory-policy
+      - noeviction
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+    networks:
+      - internal
+
+  api:
+    build:
+      context: ./apps/api
+    container_name: nexa-api
+    restart: unless-stopped
+
+    env_file:
+      - ./apps/api/.env
+
+    environment:
+      DATABASE_URL: postgresql+psycopg://nexa:nexa_local_dev@postgres:5432/nexa_ai
+      REDIS_URL: redis://redis:6379/0
+      DOCUMENT_STORAGE_PATH: /app/storage/documents
+      NEXA_API_URL: http://api:8000
+
+    ports:
+      - "127.0.0.1:8000:8000"
+
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    volumes:
+      - document_storage:/app/storage/documents
+
+    networks:
+      - internal
+
+  worker:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile.worker
+    container_name: nexa-worker
+    restart: unless-stopped
+    command:
+      - celery
+      - -A
+      - app.worker.celery_app
+      - worker
+      - --loglevel=info
+      - --concurrency=2
+    env_file:
+      - ./apps/api/.env
+    environment:
+      DATABASE_URL: postgresql+psycopg://nexa:nexa_local_dev@postgres:5432/nexa_ai
+      REDIS_URL: redis://redis:6379/0
+      DOCUMENT_STORAGE_PATH: /app/storage/documents
+    volumes:
+      - document_storage:/app/storage/documents
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+    networks:
+      - internal
+
+  web:
+    build:
+      context: ./apps/web
+    container_name: nexa-web
+    restart: unless-stopped
+
+    env_file:
+      - ./apps/web/.env.local
+
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+
+    ports:
+      - "127.0.0.1:3000:3000"
+
+    depends_on:
+      - api
+
+    networks:
+      - internal
+
+volumes:
+  nexa_postgres_data:
+  redis_data:
+  document_storage:
+
+networks:
+  internal:
+    driver: bridge

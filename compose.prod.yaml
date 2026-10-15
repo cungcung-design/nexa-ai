@@ -1,0 +1,131 @@
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+
+    ports:
+      - "80:80"
+      - "443:443"
+
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN}
+      API_DOMAIN: ${API_DOMAIN}
+
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+    depends_on:
+      - web
+      - api
+
+    networks:
+      - internal
+
+  postgres:
+    restart: unless-stopped
+    shm_size: "256mb"
+
+    security_opt:
+      - no-new-privileges:true
+
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+    networks:
+      - internal
+
+  redis:
+    restart: unless-stopped
+
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --appendfsync
+      - everysec
+      - --maxmemory
+      - 256mb
+      - --maxmemory-policy
+      - noeviction
+
+    healthcheck:
+      test:
+        - CMD
+        - redis-cli
+        - ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    security_opt:
+      - no-new-privileges:true
+
+    networks:
+      - internal
+
+  api:
+    env_file:
+      - .env.production
+
+    ports: !reset []
+
+    environment:
+      DATABASE_URL: postgresql+psycopg://nexa_prod:${POSTGRES_PASSWORD}@postgres:5432/nexa_ai
+      REDIS_URL: redis://redis:6379/0
+      DOCUMENT_STORAGE_PATH: /app/storage/documents
+      NEXA_API_URL: http://api:8000
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    networks:
+      - internal
+
+  worker:
+    env_file:
+      - .env.production
+
+    environment:
+      DATABASE_URL: postgresql+psycopg://nexa_prod:${POSTGRES_PASSWORD}@postgres:5432/nexa_ai
+      REDIS_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      DOCUMENT_STORAGE_PATH: /app/storage/documents
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    networks:
+      - internal
+
+  web:
+    env_file:
+      - .env.production
+
+    ports: !reset []
+
+    environment:
+      NEXT_PUBLIC_API_URL: https://${API_DOMAIN}
+
+    depends_on:
+      - api
+
+    networks:
+      - internal
+
+volumes:
+  caddy_data:
+  caddy_config:

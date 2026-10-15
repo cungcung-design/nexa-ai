@@ -1,0 +1,270 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  --background: #f8fafc;
+  --surface: #ffffff;
+  --surface-subtle: #f1f5f9;
+  --surface-hover: #f1f5f9;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --accent: #8b5cf6;
+  --focus-ring: #6366f1;
+  --success: #15803d;
+  --warning: #b45309;
+  --error: #dc2626;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--text-primary);
+  font-family: var(--font-geist-sans, Arial, Helvetica, sans-serif);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: #c7d2fe;
+  color: #1e1b4b;
+}
+
+.app-shell {
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--text-primary);
+  --background: #f8fafc;
+  --surface: #ffffff;
+  --surface-subtle: #f1f5f9;
+  --surface-hover: #f1f5f9;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --focus-ring: #6366f1;
+  --text-brand: #4338ca;
+  --text-success: #15803d;
+  --text-warning: #92400e;
+  --text-danger: #b91c1c;
+  color-scheme: light;
+}
+
+.app-shell main {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.app-shell input:not([type="checkbox"]):not([type="radio"]),
+.app-shell select,
+.app-shell textarea {
+  border-color: var(--border);
+  border-radius: 8px;
+  background-color: color-mix(in srgb, var(--text-primary) 3%, var(--surface));
+  color: var(--text-primary);
+}
+
+.app-shell input::placeholder,
+.app-shell textarea::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
+}
+
+.app-shell [class~="rounded-xl"],
+.app-shell [class~="rounded-2xl"] {
+  border-radius: 12px;
+}
+
+.app-header {
+  background-color: color-mix(in srgb, var(--background) 92%, transparent);
+}
+
+.app-shell[data-theme="dark"] {
+  --background: #09090f;
+  --surface: #14131e;
+  --surface-subtle: #111019;
+  --surface-hover: #211f2c;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --border: #302e3b;
+  --border-strong: #454252;
+  --focus-ring: #a78bfa;
+  --text-brand: #c4b5fd;
+  --text-success: #86efac;
+  --text-warning: #fcd34d;
+  --text-danger: #fca5a5;
+  color-scheme: dark;
+}
+
+/* Keep the existing Tailwind-based feature screens in step with the shared theme. */
+.app-shell [class~="bg-[#09090f]"] {
+  background-color: var(--background);
+}
+
+.app-shell [class~="bg-[#111019]"] {
+  background-color: var(--surface-subtle);
+}
+
+.app-shell [class~="bg-[#14131e]"] {
+  background-color: var(--surface);
+}
+
+.app-shell [class~="bg-[#171522]"] {
+  background-color: var(--surface);
+}
+
+.app-shell [class~="bg-black/20"] {
+  background-color: color-mix(in srgb, var(--text-primary) 4%, var(--surface));
+}
+
+.app-shell [class~="bg-white/5"],
+.app-shell [class~="bg-white/10"],
+.app-shell [class~="bg-white/[.04]"],
+.app-shell [class~="bg-white/[.05]"] {
+  background-color: color-mix(in srgb, var(--text-primary) 4%, var(--surface));
+}
+
+.app-shell [class~="bg-white/[.025]"] {
+  background-color: color-mix(in srgb, var(--text-primary) 2%, var(--surface));
+}
+
+.app-shell [class~="text-zinc-100"],
+.app-shell [class~="text-zinc-200"] {
+  color: var(--text-primary);
+}
+
+.app-shell [class~="text-zinc-300"] {
+  color: var(--text-secondary);
+}
+
+.app-shell [class~="text-zinc-400"],
+.app-shell [class~="text-zinc-500"],
+.app-shell [class~="text-zinc-600"] {
+  color: var(--text-muted);
+}
+
+.app-shell [class~="text-violet-700"] {
+  color: var(--text-brand);
+}
+
+.app-shell [class~="text-violet-200"],
+.app-shell [class~="text-violet-300"],
+.app-shell [class~="text-violet-400"],
+.app-shell [class~="text-indigo-300"],
+.app-shell [class~="text-indigo-400"] {
+  color: var(--text-brand);
+}
+
+.app-shell [class~="text-emerald-300"],
+.app-shell [class~="text-emerald-400"],
+.app-shell [class~="text-green-300"],
+.app-shell [class~="text-green-400"] {
+  color: var(--text-success);
+}
+
+.app-shell [class~="text-amber-100"],
+.app-shell [class~="text-amber-300"],
+.app-shell [class~="text-amber-400"] {
+  color: var(--text-warning);
+}
+
+.app-shell [class~="text-rose-300"],
+.app-shell [class~="text-red-200"],
+.app-shell [class~="text-red-300"],
+.app-shell [class~="text-red-400"] {
+  color: var(--text-danger);
+}
+
+.app-shell [class~="bg-slate-900"] {
+  background-color: var(--surface-subtle);
+}
+
+.app-shell [class~="border-slate-800"] {
+  border-color: var(--border);
+}
+
+.app-shell [class~="border-white/5"],
+.app-shell [class~="border-white/10"],
+.app-shell [class~="border-white/15"] {
+  border-color: var(--border);
+}
+
+.app-shell [class~="hover:bg-white/5"]:hover,
+.app-shell [class~="hover:bg-white/[.04]"]:hover {
+  background-color: var(--surface-hover);
+}
+
+.app-shell [class~="hover:text-white"]:hover {
+  color: var(--text-primary);
+}
+
+
+/* Dashboard-specific styles */
+.dashboard-bg {
+  background: linear-gradient(to bottom, #e0f2ff, #ffffff);
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.glass-panel-hover {
+  transition: all 0.2s ease;
+}
+
+.glass-panel-hover:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.shadow-soft {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
