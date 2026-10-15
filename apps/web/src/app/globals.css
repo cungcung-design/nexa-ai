@@ -234,15 +234,24 @@ button:disabled {
 }
 
 
-/* Dashboard-specific styles */
+/* Dashboard-specific styles - NEXORA AI Design System */
 .dashboard-bg {
-  background: linear-gradient(to bottom, #e0f2ff, #ffffff);
+  background: #f4f7fc;
 }
 
+/* NEXORA brand colors */
+.brand-50: #f0f5ff;
+.brand-100: #e0ebff;
+.brand-500: #3b82f6;
+.brand-600: #2563eb;
+.brand-700: #1d4ed8;
+
+/* Card styles */
 .glass-panel {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px 0 rgba(0, 0, 0, 0.04);
 }
 
 .glass-panel-hover {
@@ -250,12 +259,180 @@ button:disabled {
 }
 
 .glass-panel-hover:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
 .shadow-soft {
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Status colors */
+.status-success {
+  color: #10b981;
+}
+
+.status-warning {
+  color: #f59e0b;
+}
+
+.status-error {
+  color: #ef4444;
+}
+
+.status-info {
+  color: #3b82f6;
+}
+
+/* Chart area */
+.chart-container {
+  position: relative;
+  height: 240px;
+  width: 100%;
+}
+
+/* Scrollbar */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Status dot */
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-dot.active {
+  background: #10b981;
+}
+
+.status-dot.idle {
+  background: #3b82f6;
+}
+
+.status-dot.review {
+  background: #f59e0b;
+}
+
+.status-dot.error {
+  background: #ef4444;
+}
+
+/* NEXORA AI Dashboard - light theme overrides */
+.app-shell[data-theme="light"] {
+  --background: #f4f7fc;
+  --surface: #ffffff;
+  --surface-subtle: #f1f5f9;
+  --surface-hover: #e8eef7;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --focus-ring: #3b82f6;
+  --text-brand: #1d4ed8;
+  --text-success: #15803d;
+  --text-warning: #b45309;
+  --text-danger: #dc2626;
+  color-scheme: light;
+}
+
+.app-shell[data-theme="light"] .app-header {
+  background-color: color-mix(in srgb, #ffffff 80%, transparent);
+}
+
+.app-shell[data-theme="light"] .app-shell [class~="bg-[#f4f7fc]"] {
+  background-color: var(--background);
+}
+
+.app-shell[data-theme="light"] .app-shell [class~="bg-slate-50"]:hover {
+  background-color: var(--surface-hover);
+}
+
+.app-shell[data-theme="light"] .app-shell [class~="border-slate-100"] {
+  border-color: var(--border);
+}
+
+.app-shell[data-theme="light"] .app-shell [class~="border-slate-200"] {
+  border-color: var(--border-strong);
+}
+
+.app-shell[data-theme="light"] .app-shell [class~="text-slate-900"],
+.app-shell[data-theme="light"] .app-shell [class~="text-slate-800"] {
+  color: var(--text-primary);
+}
+
+.app-shell[data-theme="light"] .app-shell [class~="text-slate-700"] {
+  color: var(--text-secondary);
+}
+
+.app-shell[data-theme="light"] .app-shell [class~="text-slate-500"],
+.app-shell[data-theme="light"] .app-shell [class~="text-slate-400"] {
+  color: var(--text-muted);
+}
+
+.app-shell[data-theme="light"] .app-shell [class~="text-blue-600"] {
+  color: var(--text-brand);
+}
+
+.app-shell[data-theme="light"] .app-shell [class~="text-emerald-600"] {
+  color: var(--text-success);
+}
+
+.app-shell[data-theme="light"] .app-shell [class~="text-amber-600"],
+.app-shell[data-theme="light"] .app-shell [class~="text-amber-500"] {
+  color: var(--text-warning);
+}
+
+.app-shell[data-theme="light"] .app-shell [class~="text-rose-600"],
+.app-shell[data-theme="light"] .app-shell [class~="text-rose-500"] {
+  color: var(--text-danger);
+}
+
+.app-shell[data-theme="light"] .app-shell [class~="bg-blue-50"],
+.app-shell[data-theme="light"] .app-shell [class~="bg-blue-50/80"] {
+  background-color: color-mix(in srgb, #3b82f6 12%, var(--surface));
+}
+
+.app-shell[data-theme="light"] .app-shell [class~="bg-blue-600"]:hover {
+  background-color: #1d4ed8;
+}
+
+.app-shell[data-theme="light"] .app-shell [class~="hover:bg-slate-50"]:hover,
+.app-shell[data-theme="light"] .app-shell [class~="hover:bg-slate-100"]:hover {
+  background-color: var(--surface-hover);
+}
+
+.app-shell[data-theme="light"] .app-shell [class~="hover:bg-blue-600"]:hover {
+  background-color: #1d4ed8;
+}
+
+.app-shell[data-theme="light"] .app-shell [class~="hover:text-slate-900"]:hover {
+  color: var(--text-primary);
+}
+
+.app-shell[data-theme="light"] .app-shell [class~="hover:text-blue-600"]:hover {
+  color: var(--text-brand);
+}
+
+.app-shell[data-theme="light"] .app-shell [class~="shadow-blue-500\/20"] {
+  --tw-shadow-color: #3b82f6;
+  --tw-shadow-opacity: 0.2;
 }
 
 @media (prefers-reduced-motion: reduce) {

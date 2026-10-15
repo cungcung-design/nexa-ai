@@ -3,6 +3,8 @@ import { unstable_noStore } from "next/cache";
 import { authorizedOrganization } from "@/lib/workspace";
 import { Suspense } from "react";
 
+export const instant = false;
+
 // Tenant guard: only members of this organization can view its pages.
 // The backend re-checks membership on every API call as well.
 async function OrganizationGuard({
@@ -29,7 +31,7 @@ export default async function OrganizationLayout({
 }) {
   return (
     <Suspense fallback={null}>
-      <OrganizationGuard children={children} params={params} />
+      <OrganizationGuard params={params}>{children}</OrganizationGuard>
     </Suspense>
   );
 }

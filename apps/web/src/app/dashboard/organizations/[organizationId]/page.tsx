@@ -1,3 +1,5 @@
-﻿export default function Page() {
-  return null;
+﻿import DashboardPage from "@/app/dashboard/page";
+
+export default function OrganizationDashboardPage() {
+  return <DashboardPage />;
 }

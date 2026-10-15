@@ -12,6 +12,8 @@ import {
 } from "@/lib/api";
 import { Suspense } from "react";
 
+export const instant = false;
+
 async function DashboardContent({ children }: { children: React.ReactNode }) {
   unstable_noStore();
   if (!(await cookies()).get("nexa_access")?.value) redirect("/login");
@@ -36,7 +38,7 @@ export default async function DashboardLayout({
 }) {
   return (
     <Suspense fallback={null}>
-      <DashboardContent children={children} />
+      <DashboardContent>{children}</DashboardContent>
     </Suspense>
   );
 }

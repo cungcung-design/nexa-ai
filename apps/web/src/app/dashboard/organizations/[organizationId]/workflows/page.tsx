@@ -1,11 +1,10 @@
 import { asArray, backendGet, type Agent } from "@/lib/api";
 import { authorizedOrganization } from "@/lib/workspace";
-import {
-  WorkflowCenter,
-  type Approval,
-} from "@/components/workflow-center";
+import { WorkflowBuilder } from "@/components/workflow-builder";
+import { type Approval } from "@/components/workflow-center";
+import { Suspense } from "react";
 
-export default async function WorkflowsPage({
+async function WorkflowsContent({
   params,
 }: {
   params: Promise<{ organizationId: string }>;
@@ -31,29 +30,35 @@ export default async function WorkflowsPage({
       : [];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-violet-400">
-          Agent Operations
-        </p>
-        <h1 className="mt-2 text-3xl font-bold">Workflows</h1>
-        <p className="mt-2 text-sm text-zinc-400">
-          Submit a demo workflow for human review and inspect the approval
-          queue.
-        </p>
-      </div>
-      {org ? (
-        <WorkflowCenter
-          key={org.id}
-          orgId={org.id}
-          agents={agents}
-          initialApprovals={approvals}
-          canReview={canReview}
-          mode="workflows"
-        />
-      ) : (
-        <p className="text-zinc-400">Choose an organization to continue.</p>
-      )}
-    </div>
+    <WorkflowBuilder
+      org={org}
+      orgId={org.id}
+      agents={agents}
+      initialApprovals={approvals}
+      canReview={canReview}
+    />
+  );
+}
+
+export default async function WorkflowsPage({
+  params,
+}: {
+  params: Promise<{ organizationId: string }>;
+}) {
+  return (
+    <Suspense fallback={<div className="text-zinc-400">Loading...</div>}>
+      <WorkflowsContent params={params} />
+    </Suspense>
+  );
+}
+
+  return (
+    <WorkflowBuilder
+      org={org}
+      orgId={org.id}
+      agents={agents}
+      initialApprovals={approvals}
+      canReview={canReview}
+    />
   );
 }
