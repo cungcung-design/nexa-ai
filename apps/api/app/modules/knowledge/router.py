@@ -1,8 +1,8 @@
 from io import BytesIO
 from pathlib import Path
 from uuid import UUID, uuid4
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status, Response
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 from pypdf import PdfReader
 from app.db.session import get_db
@@ -108,11 +108,11 @@ async def upload_document(
 
     filename = (file.filename or "document")[:255]
     is_pdf = raw.startswith(b"%PDF-")
-    is_txt = filename.lower().endswith(".txt")
+    is_txt = filename.lower().endswith((".txt", ".md"))
     if not is_pdf and not is_txt:
         raise HTTPException(
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail="Only PDF and TXT files are supported",
+            detail="Only PDF, TXT, and MD files are supported",
         )
 
     if is_txt:
@@ -148,10 +148,54 @@ async def upload_document(
     db.refresh(doc)
     print(f"=== DOC CREATED: {doc.id}, status={doc.status} ===")
 
-    process_document.delay(str(doc.id), str(organization_id))
-    print("=== TASK QUEUED ===")
+    try:
+        process_document.delay(str(doc.id), str(organization_id))
+        print("=== TASK QUEUED ===")
+    except Exception as exc:
+        print(f"=== TASK QUEUE FAILED: {exc} ===")
 
     return doc
+
+
+@router.delete("/{kb_id}/documents/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_document_endpoint(
+    organization_id: UUID,
+    kb_id: UUID,
+    document_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    membership = require_membership(db, current_user.id, organization_id)
+    require_upload_role(membership)
+
+    document = db.scalar(
+        select(Document).where(
+            Document.id == document_id,
+            Document.knowledge_base_id == kb_id,
+            Document.organization_id == organization_id,
+        )
+    )
+    if document is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found",
+        )
+
+    if document.storage_key:
+        storage_path = Path(settings.document_storage_path) / document.storage_key
+        if storage_path.exists():
+            try:
+                storage_path.unlink()
+            except OSError:
+                pass
+
+    db.execute(
+        delete(DocumentChunk).where(DocumentChunk.document_id == document_id)
+    )
+    db.delete(document)
+    db.commit()
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/{kb_id}/documents", response_model=list[DocumentResponse])

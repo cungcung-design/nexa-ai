@@ -44,6 +44,26 @@ export type AgentVersion = {
   created_at: string;
 };
 
+export type Trace = {
+  id: string;
+  organization_id: string;
+  agent_id: string;
+  status: string;
+  error_code: string | null;
+  latency_ms: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+  created_at: string;
+};
+
+export type SpanResponse = {
+  id: string;
+  trace_id: string;
+  name: string;
+  duration_ms: number;
+  status: string;
+};
+
 export async function backendGet<T>(path: string): Promise<T | null> {
   const token = (await cookies()).get("nexa_access")?.value;
   if (!token) return null;
