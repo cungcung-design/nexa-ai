@@ -200,7 +200,7 @@ export function DashboardShell({
 
         <nav
           aria-label="Main navigation"
-          className="flex-1 space-y-1.5 overflow-y-auto px-3 py-4 text-sm font-medium"
+          className="flex-1 space-y-1.5 overflow-y-auto no-scrollbar px-3 py-4 text-sm font-medium"
         >
           {NAVIGATION.map(({ name, icon: Icon, segment }) => {
             const href = hrefFor(segment);

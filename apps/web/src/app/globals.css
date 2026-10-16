@@ -239,12 +239,7 @@ button:disabled {
   background: #f4f7fc;
 }
 
-/* NEXORA brand colors */
-.brand-50: #f0f5ff;
-.brand-100: #e0ebff;
-.brand-500: #3b82f6;
-.brand-600: #2563eb;
-.brand-700: #1d4ed8;
+/* NEXORA brand colors (Tailwind utility classes bg-blue-50/600/700 cover these) */
 
 /* Card styles */
 .glass-panel {
@@ -444,4 +439,13 @@ button:disabled {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Hide scrollbar while keeping scroll functionality */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
