@@ -4,6 +4,8 @@ import { WorkflowBuilder } from "@/components/workflow-builder";
 import { type Approval } from "@/components/workflow-center";
 import { Suspense } from "react";
 
+export const instant = false;
+
 async function WorkflowsContent({
   params,
 }: {
@@ -29,6 +31,10 @@ async function WorkflowsContent({
         )
       : [];
 
+  if (!org) {
+    return <p className="p-6 text-zinc-400">Choose an organization to continue.</p>;
+  }
+
   return (
     <WorkflowBuilder
       org={org}
@@ -49,16 +55,5 @@ export default async function WorkflowsPage({
     <Suspense fallback={<div className="text-zinc-400">Loading...</div>}>
       <WorkflowsContent params={params} />
     </Suspense>
-  );
-}
-
-  return (
-    <WorkflowBuilder
-      org={org}
-      orgId={org.id}
-      agents={agents}
-      initialApprovals={approvals}
-      canReview={canReview}
-    />
   );
 }
