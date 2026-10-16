@@ -200,7 +200,7 @@ export function DashboardShell({
 
         <nav
           aria-label="Main navigation"
-          className="flex-1 space-y-1.5 overflow-y-auto no-scrollbar px-3 py-4 text-sm font-medium"
+          className="flex-1 space-y-[5px] overflow-y-auto no-scrollbar px-3 py-4"
         >
           {NAVIGATION.map(({ name, icon: Icon, segment }) => {
             const href = hrefFor(segment);
@@ -211,13 +211,14 @@ export function DashboardShell({
                 href={href}
                 title={name}
                 onClick={() => setMobileOpen(false)}
-                className={`flex min-h-10 w-full items-center gap-3 rounded-xl px-3.5 py-2.5 transition-colors ${
+                aria-current={isActive ? "page" : undefined}
+                className={`flex items-center gap-[14px] w-full h-[46px] px-[14px] border border-transparent rounded-[12px] bg-transparent text-[#374151] text-[13px] font-semibold text-left cursor-pointer shrink-0 transition-all ${
                   isActive
-                    ? "bg-blue-50/80 text-blue-600"
-                    : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
-                }`}
+                    ? "text-[#4265db] border-white/80 bg-[linear-gradient(105deg,#f1f5ff_0%,#e4eaff_100%)] shadow-[0_4px_9px_rgba(91,119,210,0.13),inset_0_0_5px_rgba(255,255,255,0.65)]"
+                    : ""
+                } hover:bg-[#0a0a0a03] focus-visible:outline-[2px] focus-visible:outline-[#4265db] focus-visible:outline-offset-[3px]`}
               >
-                <Icon className="size-5 shrink-0" />
+                <Icon className="size-4 shrink-0" />
                 <span>{name}</span>
               </Link>
             );
