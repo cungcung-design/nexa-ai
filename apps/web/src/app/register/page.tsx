@@ -1,18 +1,36 @@
-import { AuthLayout } from "@/components/auth-layout";
-import { LoginForm } from "@/components/login-form";
+import type { Metadata } from "next";
 
-export default function RegisterPage() {
+import { AuthForm } from "@/components/public/auth-form";
+import { AccountIcon } from "@/components/public/auth-icons";
+import { AuthShell } from "@/components/public/auth-shell";
+import { safeNextPath } from "@/lib/navigation";
+import "../auth.css";
+
+export const metadata: Metadata = {
+  title: "Sign Up — Nexa AI",
+  description: "Start building with Nexa AI.",
+};
+
+// The page reads the sign in redirect from the query string, so it renders
+// at request time instead of being prerendered.
+export const instant = false;
+
+export default async function RegisterPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const query = await searchParams;
+  const next = safeNextPath(query.next);
+
   return (
-    <AuthLayout
-      eyebrow="Get started"
+    <AuthShell
+      variant="register"
+      brandIcon={<AccountIcon className="nx-auth-icon" />}
       title="Create your account"
-      description="Set up your account and create a workspace for your AI team."
+      description="Start building with Nexa AI."
     >
-      <LoginForm mode="register" />
-      <p className="mt-6 text-xs leading-5 text-slate-500">
-        Your account is created through the Nexa AI backend and signed in
-        immediately.
-      </p>
-    </AuthLayout>
+      <AuthForm mode="register" next={next} />
+    </AuthShell>
   );
 }

@@ -1,0 +1,484 @@
+/*
+ * The styles of the sign in and sign up pages.
+ *
+ * The rules mirror the supplied design: a two panel card with the form on the
+ * left and the lavender brand panel on the right. Every class is prefixed so
+ * the sheet never collides with the other screens of the application.
+ */
+
+.nx-auth-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #f6f7ff;
+  color: #171334;
+  font-family: Arial, Helvetica, sans-serif;
+  line-height: normal;
+  -webkit-font-smoothing: antialiased;
+}
+
+.nx-auth-page button,
+.nx-auth-page input {
+  font-family: inherit;
+  line-height: inherit;
+}
+
+.nx-auth-page a {
+  color: #6940ee;
+  text-decoration: none;
+}
+
+.nx-auth-page a:hover {
+  text-decoration: underline;
+}
+
+.nx-auth-card {
+  display: grid;
+  grid-template-columns: 1.08fr 1fr;
+  width: min(820px, 100%);
+  min-height: 620px;
+  overflow: hidden;
+  border: 1px solid #e9e8f7;
+  border-radius: 16px;
+  background: white;
+  box-shadow: 0 18px 60px #5541bc08;
+}
+
+.nx-auth-form-panel {
+  display: flex;
+  align-items: center;
+  padding: 44px;
+  background: #fff;
+}
+
+.nx-auth-form-content {
+  width: 100%;
+}
+
+.nx-auth-brand-icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  margin: 0 0 24px 7px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #a17aff, #6e38ff);
+  color: white;
+  box-shadow: 0 5px 12px #7543ff26;
+}
+
+.nx-auth-brand-icon::before {
+  content: "";
+  position: absolute;
+  left: -9px;
+  top: 11px;
+  width: 15px;
+  height: 15px;
+  border-radius: 5px;
+  background: #bda6ffb3;
+  border: 1px solid #ffffffa6;
+}
+
+.nx-auth-icon {
+  width: 23px;
+  height: 23px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.nx-auth-title {
+  margin: 0 0 10px;
+  font-size: 25px;
+  line-height: 1.2;
+  font-weight: 750;
+  letter-spacing: -0.7px;
+}
+
+.nx-auth-subtitle {
+  margin: 0 0 27px;
+  color: #8a879f;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.nx-auth-field {
+  margin-bottom: 18px;
+}
+
+.nx-auth-field label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.nx-auth-input-wrap {
+  position: relative;
+}
+
+.nx-auth-input {
+  display: block;
+  width: 100%;
+  height: 41px;
+  padding: 0 12px;
+  border: 1px solid #e6e6f2;
+  border-radius: 6px;
+  outline: none;
+  color: #171334;
+  background: white;
+  font-size: 12px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.nx-auth-input::placeholder {
+  color: #b2afc1;
+}
+
+.nx-auth-input:focus {
+  border-color: #aa8aff;
+  box-shadow: 0 0 0 3px #7543ff0c;
+}
+
+.nx-auth-input[aria-invalid="true"] {
+  border-color: #e0647f;
+}
+
+.nx-auth-password-input {
+  padding-right: 43px;
+}
+
+.nx-auth-password-toggle {
+  position: absolute;
+  right: 0;
+  top: 0;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 41px;
+  padding: 1px 6px;
+  border: 0;
+  background: transparent;
+  color: #848098;
+  cursor: pointer;
+}
+
+.nx-auth-password-toggle .nx-auth-icon {
+  width: 17px;
+  height: 17px;
+}
+
+.nx-auth-options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 2px 0 25px;
+  font-size: 10px;
+}
+
+.nx-auth-check-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 10px;
+  line-height: 1.6;
+  color: #625c7c;
+  cursor: pointer;
+}
+
+.nx-auth-check-label input {
+  width: 13px;
+  height: 13px;
+  margin: 1px 0 0;
+  flex-shrink: 0;
+  accent-color: #7543ff;
+  color: #000;
+  cursor: pointer;
+}
+
+.nx-auth-options a {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.nx-auth-terms {
+  margin: 0 0 17px;
+  font-size: 9px;
+}
+
+.nx-auth-terms a {
+  font-weight: 600;
+}
+
+.nx-auth-submit {
+  display: block;
+  width: 100%;
+  min-height: 41px;
+  padding: 1px 6px;
+  border: 1px solid #8c63ff;
+  border-radius: 6px;
+  background: linear-gradient(110deg, #905aff, #7441ff);
+  box-shadow: 0 3px 8px #7543ff15;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.nx-auth-submit:hover {
+  filter: brightness(1.04);
+}
+
+.nx-auth-submit:disabled {
+  opacity: 0.72;
+  cursor: progress;
+}
+
+.nx-auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 21px 0;
+  color: #aba7bb;
+  font-size: 10px;
+}
+
+.nx-auth-divider::before,
+.nx-auth-divider::after {
+  content: "";
+  height: 1px;
+  background: #efedf6;
+  flex: 1;
+}
+
+.nx-auth-google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 41px;
+  padding: 1px 6px;
+  border: 1px solid #e6e6f2;
+  border-radius: 6px;
+  background: white;
+  color: #48415f;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.nx-auth-google:hover {
+  background: #faf9ff;
+}
+
+.nx-auth-google svg {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+}
+
+.nx-auth-switch {
+  margin: 21px 0 0;
+  text-align: center;
+  color: #918ba5;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.nx-auth-switch a {
+  font-weight: 600;
+}
+
+.nx-auth-status {
+  margin: 14px 0 0;
+  color: #716888;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.nx-auth-status:empty {
+  display: none;
+}
+
+.nx-auth-status-error {
+  color: #c2334d;
+}
+
+.nx-auth-page button:focus-visible,
+.nx-auth-page a:focus-visible {
+  outline: 2px solid #7543ff;
+  outline-offset: 3px;
+}
+
+/* Lavender brand panel */
+.nx-auth-visual {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  min-height: 620px;
+  background:
+    radial-gradient(ellipse at 40% 25%, #fafaffb3, transparent 60%),
+    linear-gradient(135deg, #f0f0ff, #dedbff 60%, #eeeaff);
+}
+
+.nx-auth-ribbon {
+  position: absolute;
+  z-index: -1;
+  width: 165%;
+  height: 125px;
+  border-radius: 24px;
+  transform: rotate(-49deg);
+  pointer-events: none;
+}
+
+.nx-auth-ribbon-one {
+  left: -32%;
+  top: 10%;
+  background: linear-gradient(90deg, #ffffff08, #ffffff7a);
+}
+
+.nx-auth-ribbon-two {
+  left: -24%;
+  top: 52%;
+  height: 145px;
+  background: linear-gradient(90deg, #ffffff50, #b9b1ff24);
+}
+
+.nx-auth-ribbon-three {
+  left: 24%;
+  top: 74%;
+  background: #ffffff45;
+}
+
+.nx-auth-visual::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  width: 230px;
+  height: 230px;
+  top: -155px;
+  left: -75px;
+  transform: rotate(42deg);
+  background: #ffffff55;
+  border-radius: 20px;
+}
+
+.nx-auth-brand-copy {
+  position: absolute;
+  top: 32%;
+  left: 0;
+  right: 0;
+  text-align: center;
+}
+
+.nx-auth-brand-copy h2 {
+  margin: 0 0 8px;
+  color: #6337ff;
+  font-size: 31px;
+  font-weight: 750;
+  letter-spacing: -1px;
+}
+
+.nx-auth-brand-copy p {
+  margin: 0;
+  color: #777098;
+  font-size: 12px;
+}
+
+.nx-auth-float {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 68px;
+  height: 68px;
+  border: 1px solid #ffffff88;
+  border-radius: 22px;
+  background: linear-gradient(145deg, #ffffffba, #efebffb3);
+  color: #7845ff;
+  box-shadow: 0 10px 24px #7960d51b, inset 0 1px 2px #fff;
+}
+
+.nx-auth-float .nx-auth-icon {
+  width: 32px;
+  height: 32px;
+  stroke-width: 2;
+}
+
+.nx-auth-float-one {
+  left: 16%;
+  top: 49%;
+  transform: rotate(-8deg);
+}
+
+.nx-auth-float-two {
+  right: 18%;
+  top: 60%;
+  transform: rotate(8deg);
+}
+
+.nx-auth-float-three {
+  left: 28%;
+  top: 70%;
+  transform: rotate(-7deg);
+}
+
+.nx-auth-float-four {
+  right: 4%;
+  top: 81%;
+  transform: rotate(10deg);
+}
+
+@media (max-width: 700px) {
+  .nx-auth-page {
+    padding: 18px;
+  }
+
+  .nx-auth-form-panel {
+    padding: 32px 25px;
+  }
+
+  .nx-auth-card {
+    grid-template-columns: 1.15fr 1fr;
+  }
+
+  .nx-auth-brand-copy h2 {
+    font-size: 26px;
+  }
+
+  .nx-auth-float {
+    width: 51px;
+    height: 51px;
+    border-radius: 17px;
+  }
+
+  .nx-auth-float .nx-auth-icon {
+    width: 25px;
+    height: 25px;
+  }
+}
+
+@media (max-width: 520px) {
+  .nx-auth-card {
+    grid-template-columns: 1fr;
+    min-height: auto;
+    max-width: 390px;
+  }
+
+  .nx-auth-visual {
+    display: none;
+  }
+
+  .nx-auth-form-panel {
+    padding: 35px 28px;
+  }
+
+  .nx-auth-title {
+    font-size: 25px;
+  }
+}

@@ -14,7 +14,7 @@ from app.modules.security.api_keys import (
     ALLOWED_SCOPES,
     generate_api_key,
 )
-from app.modules.security.audit import record_security_event
+from app.modules.security.audit import record_audit_event
 from app.modules.security.models import OrganizationAPIKey
 
 
@@ -82,18 +82,27 @@ def create_key(
     db.commit()
     db.refresh(api_key)
 
-    # Record the security event
-    record_security_event(
+    # Record the security event. Only metadata is stored, never the key.
+    record_audit_event(
         db=db,
         organization_id=organization_id,
         actor_user_id=current_user.id,
-        action="api_key.create",
-        resource_type="organization_api_key",
+        action="api_key.created",
+        resource_type="api_key",
         resource_id=api_key.id,
+        resource_name=api_key.name,
         details={
             "name": payload.name,
-            "scopes": payload.scopes,
+            "scopes": list(payload.scopes),
+            "key_prefix": prefix,
         },
+        changes={
+            "before": {},
+            "after": {"name": payload.name, "scopes": list(payload.scopes)},
+        },
+        summary=(
+            f"{current_user.email} created the API key “{payload.name}”."
+        ),
     )
 
     # Return the created key with the plaintext (only shown once)
@@ -159,16 +168,24 @@ def revoke_key(
     db.refresh(api_key)
 
     # Record the security event
-    record_security_event(
+    record_audit_event(
         db=db,
         organization_id=organization_id,
         actor_user_id=current_user.id,
-        action="api_key.revoke",
-        resource_type="organization_api_key",
+        action="api_key.revoked",
+        resource_type="api_key",
         resource_id=api_key.id,
+        resource_name=api_key.name,
         details={
             "name": api_key.name,
+            "scopes": list(api_key.scopes or []),
+            "key_prefix": api_key.key_prefix,
         },
+        changes={
+            "before": {"active": True},
+            "after": {"active": False},
+        },
+        summary=f"{current_user.email} revoked the API key “{api_key.name}”.",
     )
 
     return api_key
@@ -226,18 +243,25 @@ def rotate_key(
     db.refresh(new_key)
 
     # Record the security event for key creation
-    record_security_event(
+    record_audit_event(
         db=db,
         organization_id=organization_id,
         actor_user_id=current_user.id,
-        action="api_key.rotate",
-        resource_type="organization_api_key",
+        action="api_key.rotated",
+        resource_type="api_key",
         resource_id=new_key.id,
+        resource_name=old_key.name,
         details={
             "old_key_id": str(old_key.id),
             "new_key_id": str(new_key.id),
             "name": old_key.name,
+            "key_prefix": prefix,
         },
+        changes={
+            "before": {"key_id": str(old_key.id), "active": True},
+            "after": {"key_id": str(new_key.id), "active": True},
+        },
+        summary=f"{current_user.email} rotated the API key “{old_key.name}”.",
     )
 
     # Return the new key with the plaintext (only shown once)

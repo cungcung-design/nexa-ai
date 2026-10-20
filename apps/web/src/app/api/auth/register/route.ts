@@ -9,7 +9,7 @@ const base = (
 const TOKEN_MAX_AGE_SECONDS = 15 * 60;
 
 export async function POST(request: NextRequest) {
-  const { email, password } = await request.json().catch(() => ({}));
+  const { email, password, name } = await request.json().catch(() => ({}));
   if (
     typeof email !== "string" ||
     typeof password !== "string" ||
@@ -27,11 +27,16 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   }
+  const fullName = typeof name === "string" ? name.trim() : "";
   try {
     const registered = await fetch(`${base}/api/v1/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({
+        email,
+        password,
+        ...(fullName ? { full_name: fullName } : {}),
+      }),
       cache: "no-store",
       signal: AbortSignal.timeout(8000),
     });

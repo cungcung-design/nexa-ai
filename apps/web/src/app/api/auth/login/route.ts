@@ -12,7 +12,9 @@ const path = process.env.NEXA_AUTH_LOGIN_PATH ?? "/api/v1/auth/login";
 const TOKEN_MAX_AGE_SECONDS = 15 * 60;
 
 export async function POST(request: NextRequest) {
-  const { email, password } = await request.json().catch(() => ({}));
+  const { email, password, remember } = await request
+    .json()
+    .catch(() => ({}));
   if (
     typeof email !== "string" ||
     typeof password !== "string" ||
@@ -53,7 +55,9 @@ export async function POST(request: NextRequest) {
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
-      maxAge: TOKEN_MAX_AGE_SECONDS,
+      // Without "remember me" the session cookie ends with the browser
+      // session, otherwise it lives as long as the access token allows.
+      maxAge: remember === false ? undefined : TOKEN_MAX_AGE_SECONDS,
     });
     return response;
   } catch {

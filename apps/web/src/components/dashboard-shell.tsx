@@ -2,17 +2,19 @@
 
 import Link from "next/link";
 import { usePathname, useParams, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Bell,
   Box,
   ChevronDown,
   Clock3,
+  CreditCard,
   FolderOpen,
   FolderTree,
   Globe,
   LogOut,
   Menu,
+  MessageCircle,
   Moon,
   Plus,
   Search,
@@ -21,6 +23,7 @@ import {
   Shapes,
   Sparkles,
   Sun,
+  User as UserIcon,
   Users,
   WandSparkles,
   Book,
@@ -32,18 +35,125 @@ import type { Organization, User } from "@/lib/api";
 
 type SVGIcon = ComponentType<SVGProps<SVGSVGElement>>;
 
-const NAVIGATION: { name: string; icon: SVGIcon; segment: string }[] = [
-  { name: "Dashboard", icon: Shapes, segment: "overview" },
-  { name: "Workflows", icon: FolderTree, segment: "workflows" },
+type NavItem = {
+  name: string;
+  icon: SVGIcon;
+  segment: string;
+  requiredRole?: ("OWNER" | "ADMIN" | "DEVELOPER" | "VIEWER")[];
+  missingPage?: boolean;
+};
+
+function AnalyticsIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
+      <path d="M4 20v-4M8 20v-7M12 20v-4M16 20V10M20 20V5" />
+      <path d="m3 12 6-6 5 4 7-8" />
+    </svg>
+  );
+}
+
+function AuditLogsIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
+      <path d="M8 3H5a2 2 0 0 0-2 2v3h5" />
+      <path d="M5 3h12a2 2 0 0 1 2 2v13" />
+      <path d="M8 3v16a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-3h-9v3a2 2 0 0 1-2 2" />
+      <path d="M11 7h5M11 11h5" />
+    </svg>
+  );
+}
+
+const DASHBOARD_ITEM: NavItem = {
+  name: "Dashboard",
+  icon: Shapes,
+  segment: "overview",
+};
+
+const BUILD_AUTOMATE_ITEMS: NavItem[] = [
   { name: "AI Agents", icon: WandSparkles, segment: "agents" },
+  { name: "Workflows", icon: FolderTree, segment: "workflows" },
   { name: "Knowledge Base", icon: Book, segment: "knowledge" },
-  { name: "Analytics", icon: ChartPie, segment: "analytics" },
   { name: "Integrations", icon: Globe, segment: "integrations" },
-  { name: "Human-in-the-Loop", icon: ShieldCheck, segment: "approvals" },
-  { name: "Team", icon: Users, segment: "team" },
-  { name: "Audit Logs", icon: Clock3, segment: "audit" },
-  { name: "Settings", icon: Settings, segment: "settings" },
 ];
+
+const MONITOR_OPERATE_ITEMS: NavItem[] = [
+  { name: "Conversations", icon: MessageCircle, segment: "conversations" },
+  { name: "Approvals", icon: ShieldCheck, segment: "approvals" },
+  { name: "Analytics", icon: AnalyticsIcon, segment: "analytics" },
+  { name: "Audit Logs", icon: AuditLogsIcon, segment: "audit-logs" },
+];
+
+const WORKSPACE_ITEMS: NavItem[] = [
+  {
+    name: "Team",
+    icon: Users,
+    segment: "team",
+  },
+  {
+    name: "Billing",
+    icon: CreditCard,
+    segment: "billing",
+  },
+   { name: "Settings", icon: Settings, segment: "settings" },
+ ];
+
+type NavSection = {
+  label: string | null;
+  items: NavItem[];
+  collapsible: boolean;
+  defaultOpen?: boolean;
+};
+
+const NAV_SECTIONS: NavSection[] = [
+  { label: null, items: [DASHBOARD_ITEM], collapsible: false },
+  {
+    label: "Build & Automate",
+    items: BUILD_AUTOMATE_ITEMS,
+    collapsible: true,
+    defaultOpen: true,
+  },
+  {
+    label: "Monitor & Operate",
+    items: MONITOR_OPERATE_ITEMS,
+    collapsible: true,
+    defaultOpen: true,
+  },
+  {
+    label: "Workspace",
+    items: WORKSPACE_ITEMS,
+    collapsible: true,
+    defaultOpen: true,
+  },
+];
+
+const MANAGE_ROLES = new Set(["OWNER", "ADMIN"]);
+const REVIEW_ROLES = new Set(["OWNER", "ADMIN", "DEVELOPER"]);
+const VIEW_ROLES = new Set(["OWNER", "ADMIN", "DEVELOPER", "VIEWER"]);
+
+function roleAllows(item: NavItem, userRole: string | null | undefined): boolean {
+  if (!item.requiredRole || item.requiredRole.length === 0) return true;
+  if (!userRole) return false;
+  const allowed = new Set(item.requiredRole);
+  return allowed.has(userRole as "OWNER" | "ADMIN" | "DEVELOPER" | "VIEWER");
+}
 
 function rememberOrganization(id: string) {
   document.cookie = `nexa_active_org=${encodeURIComponent(
@@ -64,6 +174,9 @@ export function DashboardShell({
   const params = useParams<{ organizationId?: string }>();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [buildAutomateOpen, setBuildAutomateOpen] = useState(true);
+  const [monitorOperateOpen, setMonitorOperateOpen] = useState(true);
+  const [workspaceOpen, setWorkspaceOpen] = useState(true);
   const [theme, setTheme] = useState<"light" | "dark">(() => {
     if (typeof window === "undefined") return "light";
     const stored = window.localStorage.getItem("nexa-theme");
@@ -84,15 +197,29 @@ export function DashboardShell({
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [mobileOpen]);
 
+  useEffect(() => {
+    if (
+      organizations.length === 0 &&
+      !params.organizationId &&
+      pathname !== "/dashboard/organizations/new"
+    ) {
+      router.replace("/dashboard/organizations/new");
+    }
+  }, [organizations, params.organizationId, pathname, router]);
+
   const activeOrg =
     organizations.find((o) => o.id === params.organizationId) ?? null;
   const fallbackOrg = organizations[0] ?? null;
   const navOrg = activeOrg ?? fallbackOrg;
+  const userRole = activeOrg?.role ?? null;
 
   function hrefFor(segment: string) {
     if (!navOrg) return "/dashboard";
     if (segment === "overview") {
       return `/dashboard/organizations/${encodeURIComponent(navOrg.id)}`;
+    }
+    if (segment === "settings") {
+      return "/dashboard/settings";
     }
     return `/dashboard/organizations/${navOrg.id}/${segment}`;
   }
@@ -137,6 +264,13 @@ export function DashboardShell({
         (!!activeOrg &&
           pathname === `/dashboard/organizations/${encodeURIComponent(activeOrg.id)}`)
       );
+    }
+    if (segment === "settings") {
+      if (pathname === "/dashboard/settings" || pathname.startsWith("/dashboard/settings/")) {
+        return true;
+      }
+      const settingsPath = `/dashboard/organizations/${params?.organizationId}/settings`;
+      return pathname.startsWith(settingsPath);
     }
     const orgId = params?.organizationId;
     if (!orgId) return false;
@@ -202,25 +336,76 @@ export function DashboardShell({
           aria-label="Main navigation"
           className="flex-1 space-y-[5px] overflow-y-auto no-scrollbar px-3 py-4"
         >
-          {NAVIGATION.map(({ name, icon: Icon, segment }) => {
-            const href = hrefFor(segment);
-            const isActive = isNavActive(segment);
+          {NAV_SECTIONS.map((section, sectionIndex) => {
+            const isCollapsible = section.collapsible;
+            const isOpenRef = sectionIndex === 1 ? buildAutomateOpen : sectionIndex === 2 ? monitorOperateOpen : workspaceOpen;
+            const setOpenRef =
+              sectionIndex === 1
+                ? setBuildAutomateOpen
+                : sectionIndex === 2
+                ? setMonitorOperateOpen
+                : setWorkspaceOpen;
+            const isOpen = isCollapsible ? isOpenRef : true;
+
             return (
-              <Link
-                key={name}
-                href={href}
-                title={name}
-                onClick={() => setMobileOpen(false)}
-                aria-current={isActive ? "page" : undefined}
-                className={`flex items-center gap-[14px] w-full h-[46px] px-[14px] border border-transparent rounded-[12px] bg-transparent text-[#374151] text-[13px] font-semibold text-left cursor-pointer shrink-0 transition-all ${
-                  isActive
-                    ? "text-[#4265db] border-white/80 bg-[linear-gradient(105deg,#f1f5ff_0%,#e4eaff_100%)] shadow-[0_4px_9px_rgba(91,119,210,0.13),inset_0_0_5px_rgba(255,255,255,0.65)]"
-                    : ""
-                } hover:bg-[#0a0a0a03] focus-visible:outline-[2px] focus-visible:outline-[#4265db] focus-visible:outline-offset-[3px]`}
-              >
-                <Icon className="size-4 shrink-0" />
-                <span>{name}</span>
-              </Link>
+              <React.Fragment key={section.label ?? String(sectionIndex)}>
+                {section.label && (
+                  <button
+                    type="button"
+                    onClick={() => setOpenRef((prev: boolean) => !prev)}
+                    className="flex items-center justify-between w-full px-3 py-2.5 text-left transition-colors hover:bg-slate-50"
+                  >
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                      {section.label}
+                    </p>
+                    <ChevronDown
+                      className={`size-3.5 text-slate-400 transition-transform duration-200 ${
+                        isOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+                )}
+
+                {isOpen &&
+                  section.items
+                    .filter((item) => roleAllows(item, userRole))
+                    .map((item) => {
+                      if (item.missingPage) {
+                        return (
+                          <div
+                            key={item.name}
+                            title={`${item.name} (page not yet implemented)`}
+                            aria-disabled={true}
+                            className={`flex items-center gap-[14px] w-full h-[46px] px-[14px] border border-transparent rounded-[12px] bg-transparent text-slate-400 text-[13px] font-semibold text-left shrink-0 transition-all opacity-60 cursor-not-allowed`}
+                          >
+                            <item.icon className="size-4 shrink-0" />
+                            <span>{item.name}</span>
+                          </div>
+                        );
+                      }
+
+                      const href = hrefFor(item.segment);
+                      const isActive = isNavActive(item.segment);
+
+                      return (
+                        <Link
+                          key={item.name}
+                          href={href}
+                          title={item.name}
+                          onClick={() => setMobileOpen(false)}
+                          aria-current={isActive ? "page" : undefined}
+                          className={`flex items-center gap-[14px] w-full h-[46px] px-[14px] border border-transparent rounded-[12px] bg-transparent text-[#374151] text-[13px] font-semibold text-left cursor-pointer shrink-0 transition-all ${
+                            isActive
+                              ? "text-[#4265db] border-white/80 bg-[linear-gradient(105deg,#f1f5ff_0%,#e4eaff_100%)] shadow-[0_4px_9px_rgba(91,119,210,0.13),inset_0_0_5px_rgba(255,255,255,0.65)]"
+                              : ""
+                          } hover:bg-[#0a0a0a03] focus-visible:outline-[2px] focus-visible:outline-[#4265db] focus-visible:outline-offset-[3px]`}
+                        >
+                          <item.icon className="size-4 shrink-0" />
+                          <span>{item.name}</span>
+                        </Link>
+                      );
+                    })}
+              </React.Fragment>
             );
           })}
         </nav>
@@ -248,14 +433,16 @@ export function DashboardShell({
                 <p className="truncate text-xs text-slate-400">{user.email}</p>
               </div>
             </div>
-            <button
-              onClick={() => void logout()}
-              aria-label="Sign out"
-              title="Sign out"
-              className="text-slate-400 hover:text-slate-900"
-            >
-              <LogOut className="size-4" />
-            </button>
+            <div className="relative inline-block">
+              <button
+                onClick={() => void logout()}
+                aria-label="Account menu"
+                title="Account menu"
+                className="text-slate-400 hover:text-slate-900"
+              >
+                <LogOut className="size-4" />
+              </button>
+            </div>
           </div>
         </div>
       </aside>

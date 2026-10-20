@@ -7,7 +7,7 @@ from fastapi import (
 )
 from sqlalchemy.orm import Session
 from openai import OpenAIError
-from app.ai.runtime import run_agent
+from app.ai.runtime import run_agent, ToolApprovalRequired
 from app.db.models import User
 from app.db.session import get_db
 from app.modules.auth.dependencies import (
@@ -48,11 +48,22 @@ def chat_with_agent(
             organization_id=organization_id,
             agent_id=agent_id,
             message=payload.message,
+            version_id=payload.version_id,
+            run_override=(
+                payload.overrides.model_dump(exclude_none=True)
+                if payload.overrides
+                else None
+            ),
         )
     except ValueError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Agent not found or has no published version",
+        )
+    except ToolApprovalRequired as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
         )
     except OpenAIError:
         raise HTTPException(

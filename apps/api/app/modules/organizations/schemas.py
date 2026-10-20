@@ -1,6 +1,6 @@
 from uuid import UUID
 from typing import Literal
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 Role = Literal["OWNER", "ADMIN", "DEVELOPER", "VIEWER"]
 
@@ -12,6 +12,11 @@ class OrganizationCreate(BaseModel):
         max_length=150,
         pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$",
     )
+
+    @field_validator("slug", mode="before")
+    @classmethod
+    def normalize_slug(cls, v: str) -> str:
+        return v.lower() if isinstance(v, str) else v
 
 
 class OrganizationResponse(BaseModel):

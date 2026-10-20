@@ -38,11 +38,13 @@ body {
   line-height: 1.5;
 }
 
-button,
-input,
-select,
-textarea {
-  font: inherit;
+@layer base {
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
 }
 
 button {
@@ -89,9 +91,16 @@ button:disabled {
   overflow-wrap: anywhere;
 }
 
-.app-shell input:not([type="checkbox"]):not([type="radio"]),
-.app-shell select,
-.app-shell textarea {
+/* The settings screens sit on a near white page, the way their design does. */
+.app-shell main:has(> .settings-screen) {
+  background-color: #fcfcfc;
+}
+
+/* The settings screens keep their own controls: the pill shaped search field
+   and the bordered fields of the design. */
+.app-shell input:not([type="checkbox"]):not([type="radio"]):not(:where(.settings-screen *)),
+.app-shell select:not(:where(.settings-screen *)),
+.app-shell textarea:not(:where(.settings-screen *)) {
   border-color: var(--border);
   border-radius: 8px;
   background-color: color-mix(in srgb, var(--text-primary) 3%, var(--surface));

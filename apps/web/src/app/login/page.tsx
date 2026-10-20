@@ -1,17 +1,36 @@
-import { AuthLayout } from "@/components/auth-layout";
-import { LoginForm } from "@/components/login-form";
+import type { Metadata } from "next";
 
-export default function LoginPage() {
+import { AuthForm } from "@/components/public/auth-form";
+import { LoginIcon } from "@/components/public/auth-icons";
+import { AuthShell } from "@/components/public/auth-shell";
+import { safeNextPath } from "@/lib/navigation";
+import "../auth.css";
+
+export const metadata: Metadata = {
+  title: "Log In — Nexa AI",
+  description: "Sign in to your Nexa AI workspace.",
+};
+
+// The page reads the sign in redirect from the query string, so it renders
+// at request time instead of being prerendered.
+export const instant = false;
+
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const query = await searchParams;
+  const next = safeNextPath(query.next);
+
   return (
-    <AuthLayout
-      eyebrow="Welcome back"
-      title="Sign in to your workspace"
-      description="Use your Nexa AI account to continue to your organization."
+    <AuthShell
+      variant="login"
+      brandIcon={<LoginIcon className="nx-auth-icon" />}
+      title="Welcome back"
+      description="Sign in to your Nexa AI workspace."
     >
-      <LoginForm mode="login" />
-      <p className="mt-6 text-xs leading-5 text-slate-500">
-        Your session is maintained by Nexa AI authentication.
-      </p>
-    </AuthLayout>
+      <AuthForm mode="login" next={next} />
+    </AuthShell>
   );
 }

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import { unstable_noStore } from "next/cache";
+import { connection } from "next/server";
 import { DashboardShell } from "@/components/dashboard-shell";
 import {
   asArray,
@@ -15,7 +15,9 @@ import { Suspense } from "react";
 export const instant = false;
 
 async function DashboardContent({ children }: { children: React.ReactNode }) {
-  unstable_noStore();
+  // The dashboard is a session bound area: it is rendered at request time so
+  // that no value of the render depends on the moment it happens.
+  await connection();
   if (!(await cookies()).get("nexa_access")?.value) redirect("/login");
   const user = await backendGet<User>(AUTH_ME_PATH);
   if (!user || !user.id || !user.email) {

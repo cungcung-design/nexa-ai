@@ -1,0 +1,26 @@
+import { NextRequest } from "next/server";
+import { proxyRequest } from "@/lib/proxy";
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ orgId: string }> }
+) {
+  const { orgId } = await params;
+  return proxyRequest(
+    request,
+    orgId,
+    `/api/v1/organizations/${encodeURIComponent(orgId)}/settings`
+  );
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ orgId: string }> }
+) {
+  const { orgId } = await params;
+  return proxyRequest(
+    request,
+    orgId,
+    `/api/v1/organizations/${encodeURIComponent(orgId)}/settings`
+  );
+}

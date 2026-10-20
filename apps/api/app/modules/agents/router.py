@@ -6,6 +6,7 @@ from app.db.models import Agent, AgentVersion, User
 from app.db.session import get_db
 from app.modules.auth.dependencies import get_current_user
 from app.modules.organizations.router import require_membership
+from app.modules.billing.usage import check_agent_quota
 from app.modules.agents.schemas import (
     AgentCreate,
     AgentUpdate,
@@ -13,6 +14,7 @@ from app.modules.agents.schemas import (
     AgentVersionCreate,
     AgentVersionResponse,
 )
+from app.modules.security.audit import record_audit_event
 
 router = APIRouter(
     prefix="/api/v1/organizations/{organization_id}/agents",
@@ -37,6 +39,20 @@ def require_publish_role(membership) -> None:
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Insufficient permissions",
         )
+
+
+def _published_version_label(db: Session, agent: Agent) -> str | None:
+    """Human readable label of the currently published agent version."""
+    if not agent.published_version_id:
+        return None
+    version = (
+        db.query(AgentVersion)
+        .filter(AgentVersion.id == agent.published_version_id)
+        .first()
+    )
+    if version is None:
+        return None
+    return f"v{version.version_number}"
 
 
 @router.get("", response_model=list[AgentResponse])
@@ -64,6 +80,7 @@ def create_agent(
 ):
     membership = require_membership(db, current_user.id, organization_id)
     require_edit_role(membership)
+    check_agent_quota(db, organization_id)
 
     agent = Agent(
         organization_id=organization_id,
@@ -73,6 +90,20 @@ def create_agent(
     db.add(agent)
     db.commit()
     db.refresh(agent)
+
+    record_audit_event(
+        db,
+        organization_id=organization_id,
+        actor_user_id=current_user.id,
+        action="agent.created",
+        resource_type="agent",
+        resource_id=agent.id,
+        resource_name=agent.name,
+        changes={
+            "before": {},
+            "after": {"name": agent.name, "description": agent.description},
+        },
+    )
     return agent
 
 
@@ -119,6 +150,8 @@ def update_agent(
             detail="Agent not found",
         )
 
+    before = {"name": agent.name, "description": agent.description}
+
     if request.name is not None:
         agent.name = request.name
     if request.description is not None:
@@ -126,6 +159,20 @@ def update_agent(
 
     db.commit()
     db.refresh(agent)
+
+    record_audit_event(
+        db,
+        organization_id=organization_id,
+        actor_user_id=current_user.id,
+        action="agent.updated",
+        resource_type="agent",
+        resource_id=agent.id,
+        resource_name=agent.name,
+        changes={
+            "before": before,
+            "after": {"name": agent.name, "description": agent.description},
+        },
+    )
     return agent
 
 
@@ -156,6 +203,20 @@ def archive_agent(
 
     agent.is_archived = True
     db.commit()
+
+    record_audit_event(
+        db,
+        organization_id=organization_id,
+        actor_user_id=current_user.id,
+        action="agent.deactivated",
+        resource_type="agent",
+        resource_id=agent.id,
+        resource_name=agent.name,
+        changes={
+            "before": {"archived": False},
+            "after": {"archived": True},
+        },
+    )
 
 
 @router.get("/{agent_id}/versions", response_model=list[AgentVersionResponse])
@@ -207,6 +268,8 @@ def create_agent_version(
         .scalar()
     ) or 0
 
+    published_label = _published_version_label(db, agent)
+
     version = AgentVersion(
         organization_id=organization_id,
         agent_id=agent_id,
@@ -220,6 +283,21 @@ def create_agent_version(
     db.add(version)
     db.commit()
     db.refresh(version)
+
+    record_audit_event(
+        db,
+        organization_id=organization_id,
+        actor_user_id=current_user.id,
+        action="agent.version_created",
+        resource_type="agent_version",
+        resource_id=version.id,
+        resource_name=f"{agent.name} v{version.version_number}",
+        details={"agent_id": str(agent.id)},
+        changes={
+            "before": {"published_version": published_label},
+            "after": {"published_version": published_label},
+        },
+    )
     return version
 
 
@@ -260,7 +338,24 @@ def publish_agent_version(
             detail="Version not found",
         )
 
+    before_label = _published_version_label(db, agent)
+
     agent.published_version_id = version_id
     db.commit()
     db.refresh(agent)
+
+    record_audit_event(
+        db,
+        organization_id=organization_id,
+        actor_user_id=current_user.id,
+        action="agent.published",
+        resource_type="agent_version",
+        resource_id=version.id,
+        resource_name=f"{agent.name} v{version.version_number}",
+        details={"agent_id": str(agent.id)},
+        changes={
+            "before": {"published_version": before_label},
+            "after": {"published_version": f"v{version.version_number}"},
+        },
+    )
     return agent

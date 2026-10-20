@@ -597,7 +597,7 @@ export default function DashboardPage() {
       <div>
         <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
           Welcome back, Arif{" "}
-          <span className="inline-block" role="img" aria-label="wave">
+          <span className="inline-block animate-bounce" role="img" aria-label="wave">
             👋
           </span>
         </h1>

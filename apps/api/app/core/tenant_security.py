@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.core.permissions import Permission, has_permission
 from app.db.session import get_db
 from app.modules.auth.dependencies import get_current_user
-from app.db.models import Membership
+from app.db.models import Membership, MembershipStatus
 
 
 def require_permission(permission: Permission):
@@ -27,6 +27,14 @@ def require_permission(permission: Permission):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Organization not found or access denied",
+            )
+
+        if (membership.status or MembershipStatus.ACTIVE.value) != (
+            MembershipStatus.ACTIVE.value
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Workspace access is suspended",
             )
 
         if not has_permission(membership.role, permission):

@@ -33,6 +33,11 @@ class Role(PyEnum):
     VIEWER = "VIEWER"
 
 
+class MembershipStatus(PyEnum):
+    ACTIVE = "ACTIVE"
+    SUSPENDED = "SUSPENDED"
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -44,6 +49,7 @@ class User(Base):
     email: Mapped[str] = mapped_column(
         String(255), unique=True, index=True
     )
+    full_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     password_hash: Mapped[str] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now
@@ -102,6 +108,13 @@ class Membership(Base):
     role: Mapped[Role] = mapped_column(
         Enum(Role, name="role_enum", create_constraint=True),
         default=Role.VIEWER,
+    )
+    status: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default=MembershipStatus.ACTIVE.value,
+        server_default=MembershipStatus.ACTIVE.value,
+        index=True,
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now
@@ -599,6 +612,44 @@ class OrganizationSubscription(Base):
         String(255),
         unique=True,
     )
+    #: Billing interval of the subscription: ``monthly`` or ``yearly``.
+    interval: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="monthly",
+    )
+    #: Price of the subscribed plan in the smallest currency unit.
+    price_amount: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+    )
+    currency: Mapped[str] = mapped_column(
+        String(10),
+        nullable=False,
+        default="usd",
+    )
+    current_period_start: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True)
+    )
+    current_period_end: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True)
+    )
+    #: True when the subscription is cancelled but stays active until the
+    #: end of the paid period.
+    cancel_at_period_end: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+    )
+    canceled_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True)
+    )
+    #: Open Stripe checkout session, used to block duplicate checkouts.
+    checkout_session_id: Mapped[str | None] = mapped_column(String(255))
+    checkout_created_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True)
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now
     )
@@ -741,3 +792,556 @@ class StripeWebhookEvent(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now
     )
+
+
+class BillingProfile(Base):
+    """Billing contact information of a workspace."""
+
+    __tablename__ = "billing_profiles"
+    __table_args__ = (
+        UniqueConstraint(
+            "organization_id",
+            name="uq_billing_profile_org",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        unique=True,
+        nullable=False,
+    )
+    company_name: Mapped[str] = mapped_column(
+        String(150), nullable=False, default=""
+    )
+    billing_email: Mapped[str | None] = mapped_column(String(255))
+    address: Mapped[str | None] = mapped_column(Text)
+    tax_id: Mapped[str | None] = mapped_column(String(120))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
+
+
+class Invoice(Base):
+    """An invoice issued for a workspace, mirrored from the provider."""
+
+    __tablename__ = "invoices"
+    __table_args__ = (
+        UniqueConstraint(
+            "organization_id",
+            "provider_invoice_id",
+            name="uq_invoice_org_provider",
+        ),
+        Index("ix_invoices_org_created", "organization_id", "created_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    provider_invoice_id: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False,
+    )
+    number: Mapped[str] = mapped_column(String(120), nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(40), nullable=False, default="draft"
+    )
+    currency: Mapped[str] = mapped_column(
+        String(10), nullable=False, default="usd"
+    )
+    amount_due: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0
+    )
+    amount_paid: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0
+    )
+    tax_amount: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0
+    )
+    period_start: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True)
+    )
+    period_end: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True)
+    )
+    hosted_invoice_url: Mapped[str | None] = mapped_column(Text)
+    invoice_pdf: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
+
+
+class PaymentMethodRecord(Base):
+    """A payment method attached to a workspace customer."""
+
+    __tablename__ = "payment_methods"
+    __table_args__ = (
+        UniqueConstraint(
+            "provider_payment_method_id",
+            name="uq_payment_method_provider",
+        ),
+        Index("ix_payment_methods_org", "organization_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    provider_payment_method_id: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False,
+    )
+    brand: Mapped[str] = mapped_column(
+        String(40), nullable=False, default="card"
+    )
+    last4: Mapped[str] = mapped_column(
+        String(8), nullable=False, default=""
+    )
+    exp_month: Mapped[int | None] = mapped_column(Integer)
+    exp_year: Mapped[int | None] = mapped_column(Integer)
+    holder_name: Mapped[str | None] = mapped_column(String(150))
+    is_default: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
+
+
+class DailyUsage(Base):
+    """Daily consumption counters used for the billing usage trend."""
+
+    __tablename__ = "daily_usage"
+    __table_args__ = (
+        UniqueConstraint(
+            "organization_id",
+            "day",
+            name="uq_daily_usage_org_day",
+        ),
+        Index("ix_daily_usage_org_day", "organization_id", "day"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    day: Mapped[str] = mapped_column(String(10), nullable=False)
+    request_count: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0
+    )
+    workflow_executions: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0
+    )
+    storage_mb: Mapped[float] = mapped_column(
+        Float, nullable=False, default=0
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
+
+
+
+class IntegrationProvider(Base):
+    __tablename__ = "integration_providers"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    name: Mapped[str] = mapped_column(String(150), nullable=False)
+    slug: Mapped[str] = mapped_column(
+        String(150), unique=True, index=True, nullable=False
+    )
+    description: Mapped[str] = mapped_column(
+        Text, nullable=False, default="", server_default=""
+    )
+    category: Mapped[str] = mapped_column(
+        String(50), nullable=False, default="other"
+    )
+    auth_type: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="api_key"
+    )
+    config_schema: Mapped[dict] = mapped_column(
+        JSONB, nullable=False, default=dict, server_default="{}"
+    )
+    capabilities: Mapped[list[str]] = mapped_column(
+        JSONB, nullable=False, default=list, server_default="[]"
+    )
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="true"
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
+
+
+class WorkspaceConnection(Base):
+    __tablename__ = "workspace_connections"
+    __table_args__ = (
+        Index("ix_workspace_connections_org_status", "organization_id", "status"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    provider_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("integration_providers.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    name: Mapped[str] = mapped_column(String(150), nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(30), nullable=False, default="pending"
+    )
+    auth_type: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="api_key"
+    )
+    scopes: Mapped[list[str]] = mapped_column(
+        JSONB, nullable=False, default=list, server_default="[]"
+    )
+    encrypted_credentials: Mapped[str | None] = mapped_column(
+        Text, nullable=True
+    )
+    config: Mapped[dict] = mapped_column(
+        JSONB, nullable=False, default=dict, server_default="{}"
+    )
+    last_tested_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    last_tested_ok: Mapped[bool | None] = mapped_column(
+        Boolean, nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
+
+    provider: Mapped["IntegrationProvider"] = relationship(
+        foreign_keys=[provider_id]
+    )
+
+
+class ConnectionAgentAccess(Base):
+    __tablename__ = "connection_agent_access"
+    __table_args__ = (
+        UniqueConstraint(
+            "connection_id", "agent_id", name="uq_connection_agent_access"
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    connection_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("workspace_connections.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    agent_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("agents.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    actions: Mapped[list[str]] = mapped_column(
+        JSONB, nullable=False, default=list, server_default="[]"
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now
+    )
+
+
+class ConnectionWorkflowAccess(Base):
+    __tablename__ = "connection_workflow_access"
+    __table_args__ = (
+        UniqueConstraint(
+            "connection_id", "workflow_id", "step_key",
+            name="uq_connection_workflow_access",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    connection_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("workspace_connections.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    workflow_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), nullable=False, index=True
+    )
+    step_key: Mapped[str] = mapped_column(String(100), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now
+    )
+
+
+class IntegrationWebhook(Base):
+    __tablename__ = "integration_webhooks"
+    __table_args__ = (
+        Index("ix_integration_webhooks_org_active", "organization_id", "is_active"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    connection_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("workspace_connections.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    name: Mapped[str] = mapped_column(String(150), nullable=False)
+    target_url: Mapped[str] = mapped_column(String(500), nullable=False)
+    events: Mapped[list[str]] = mapped_column(
+        JSONB, nullable=False, default=list, server_default="[]"
+    )
+    secret: Mapped[str | None] = mapped_column(Text, nullable=True)
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="true"
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
+
+
+class IntegrationWebhookDelivery(Base):
+    __tablename__ = "integration_webhook_deliveries"
+    __table_args__ = (
+        Index(
+            "ix_integration_webhook_deliveries_webhook_created",
+            "webhook_id",
+            "created_at",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    webhook_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("integration_webhooks.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    event: Mapped[str] = mapped_column(String(100), nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="pending"
+    )
+    request_payload: Mapped[dict] = mapped_column(
+        JSONB, nullable=False, default=dict, server_default="{}"
+    )
+    response_status: Mapped[int | None] = mapped_column(
+        Integer, nullable=True
+    )
+    response_body: Mapped[str | None] = mapped_column(Text, nullable=True)
+    attempted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+
+class IntegrationActivity(Base):
+    __tablename__ = "integration_activity"
+    __table_args__ = (
+        Index(
+            "ix_integration_activity_org_created",
+            "organization_id",
+            "created_at",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    connection_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("workspace_connections.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    webhook_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("integration_webhooks.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    action: Mapped[str] = mapped_column(String(100), nullable=False)
+    actor_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    activity_metadata: Mapped[dict] = mapped_column(
+        JSONB, nullable=False, default=dict, server_default="{}"
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now
+    )
+
+
+class ApprovalPolicy(Base):
+    __tablename__ = "approval_policies"
+    __table_args__ = (
+        Index(
+            "ix_approval_policies_org_enabled",
+            "organization_id",
+            "is_enabled",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    name: Mapped[str] = mapped_column(String(150), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    action_pattern: Mapped[str] = mapped_column(String(100), nullable=False)
+    risk_level: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="medium"
+    )
+    is_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="true"
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
+
+
+class ApprovalAssignment(Base):
+    __tablename__ = "approval_assignments"
+    __table_args__ = (
+        UniqueConstraint(
+            "policy_id", "user_id", name="uq_approval_assignment_policy_user",
+        ),
+        Index(
+            "ix_approval_assignments_org_user",
+            "organization_id",
+            "user_id",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    policy_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("approval_policies.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    is_primary: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now
+    )
+

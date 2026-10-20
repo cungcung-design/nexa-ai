@@ -1,0 +1,637 @@
+/*
+ * The styles of the public landing page.
+ *
+ * Every rule is copied from the home page design so the rendered page matches
+ * the reference exactly: same layout, same colors, same spacing, same icons.
+ * The classes are prefixed to stay out of the way of the other screens.
+ */
+
+.nx-homepage {
+  --purple: #6742ff;
+  --dark: #101037;
+  --muted: #777991;
+
+  min-height: 100vh;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 85% 42%, #ded9ff 0%, transparent 49%),
+    radial-gradient(ellipse at 48% 95%, #e8efff 0%, transparent 55%),
+    linear-gradient(120deg, #fff 10%, #f8f7ff 60%, #f0edff);
+  padding: 24px 0 38px;
+  font-family: Arial, Helvetica, sans-serif;
+  color: var(--dark);
+  -webkit-font-smoothing: antialiased;
+}
+
+.nx-container {
+  width: min(1160px, calc(100% - 64px));
+  margin: auto;
+}
+
+/* Navigation */
+.nx-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 22px;
+  height: 60px;
+  padding: 0 18px;
+  background: #ffffffdc;
+  border: 1px solid #e8e6fc;
+  border-radius: 11px;
+}
+
+.nx-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.6px;
+}
+
+.nx-logo-mark {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  background: linear-gradient(135deg, #865cff, #5932fc);
+  border-radius: 8px;
+  color: white;
+}
+
+.nx-logo-mark svg {
+  width: 21px;
+  height: 21px;
+}
+
+.nx-logo > span:last-child {
+  color: #302070;
+}
+
+.nx-nav-links {
+  display: flex;
+  gap: 23px;
+}
+
+.nx-nav-links a {
+  font-size: 11px;
+  color: #55546f;
+}
+
+.nx-nav-links a:hover {
+  color: var(--purple);
+}
+
+.nx-nav-actions {
+  display: flex;
+  gap: 9px;
+}
+
+.nx-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 43px;
+  padding: 0 21px;
+  border: 1px solid #c8bcff;
+  border-radius: 8px;
+  background: #ffffffa8;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.nx-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px #6342ff18;
+}
+
+.nx-button-primary {
+  background: linear-gradient(135deg, #8054ff, #6038ff);
+  border-color: transparent;
+  color: white;
+  box-shadow: 0 5px 14px #6742ff20;
+}
+
+.nx-nav-actions .nx-button {
+  min-height: 30px;
+  padding: 0 13px;
+  font-size: 10px;
+  border-radius: 6px;
+}
+
+.nx-nav-actions .nx-button-login {
+  color: #4b329b;
+}
+
+/* Hero */
+.nx-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  min-height: 525px;
+  gap: 25px;
+}
+
+.nx-hero-content {
+  position: relative;
+  z-index: 2;
+  padding: 35px 0;
+}
+
+.nx-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  margin-bottom: 20px;
+  border-radius: 30px;
+  background: #ece6ff;
+  color: #7045ee;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.nx-badge svg {
+  width: 12px;
+  height: 12px;
+}
+
+.nx-hero h1 {
+  margin: 0;
+  font-size: clamp(37px, 4.4vw, 58px);
+  line-height: 1.02;
+  font-weight: 800;
+  letter-spacing: -2px;
+}
+
+.nx-tagline {
+  margin: 4px 0 15px;
+  font-size: clamp(23px, 2.8vw, 36px);
+  line-height: 1.1;
+  font-weight: 750;
+  letter-spacing: -1.2px;
+  white-space: nowrap;
+}
+
+.nx-hero-description {
+  max-width: 400px;
+  margin: 0;
+  color: #74748c;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.nx-hero-actions {
+  display: flex;
+  gap: 13px;
+  margin-top: 24px;
+}
+
+/* Dashboard illustration */
+.nx-preview {
+  position: relative;
+  width: 690px;
+  transform: perspective(1200px) rotateY(-10deg) rotateZ(3deg);
+  transform-origin: left center;
+}
+
+.nx-preview::before {
+  content: "";
+  position: absolute;
+  inset: -15px -12px;
+  background: #ffffff63;
+  border: 1px solid #ffffffc2;
+  border-radius: 17px;
+  box-shadow: 0 20px 55px #7958ee28;
+}
+
+.nx-dashboard {
+  position: relative;
+  display: grid;
+  grid-template-columns: 29px 114px 1fr 88px;
+  height: 370px;
+  overflow: hidden;
+  border: 5px solid #fff;
+  border-radius: 10px;
+  background: #f8f9ff;
+  box-shadow: 0 10px 35px #5e47b51f;
+}
+
+.nx-icon-rail {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 18px;
+  padding: 10px 0;
+  background: #191746;
+  color: #d7d1ff;
+  font-size: 11px;
+}
+
+.nx-rail-logo {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 21px;
+  margin-bottom: 5px;
+  border-radius: 5px;
+  background: #7850ff;
+  color: white;
+}
+
+.nx-dash-sidebar {
+  padding: 12px 7px;
+  background: white;
+  border-right: 1px solid #ecebf7;
+}
+
+.nx-dash-brand {
+  margin-bottom: 18px;
+  color: #6541ee;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.nx-dash-link {
+  padding: 7px 5px;
+  margin-bottom: 4px;
+  border-radius: 4px;
+  font-size: 7px;
+  color: #8887a5;
+}
+
+.nx-dash-link-active {
+  background: #f0ebff;
+  color: #6742ff;
+}
+
+.nx-dash-main {
+  min-width: 0;
+  padding: 11px;
+}
+
+.nx-dash-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid #ecebf8;
+}
+
+.nx-search {
+  background: white;
+  border: 1px solid #e9e8f5;
+  border-radius: 4px;
+  padding: 5px;
+  font-size: 6px;
+  color: #aaa;
+}
+
+.nx-create {
+  padding: 5px 8px;
+  border-radius: 4px;
+  background: #7450ff;
+  color: white;
+  font-size: 6px;
+}
+
+.nx-dash-title {
+  margin: 13px 0 10px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.nx-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+}
+
+.nx-stat {
+  padding: 10px 8px;
+  border: 1px solid #edecf8;
+  border-radius: 6px;
+  background: white;
+}
+
+.nx-stat small {
+  display: block;
+  color: #9391ac;
+  font-size: 6px;
+}
+
+.nx-stat strong {
+  display: block;
+  font-size: 17px;
+  margin-top: 6px;
+}
+
+.nx-stat em {
+  color: #39be92;
+  font-size: 6px;
+  font-style: normal;
+}
+
+.nx-dash-columns {
+  display: grid;
+  grid-template-columns: 0.85fr 1.15fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.nx-dash-card {
+  min-width: 0;
+  padding: 10px;
+  background: white;
+  border: 1px solid #eeedf8;
+  border-radius: 6px;
+}
+
+.nx-dash-card h3 {
+  margin: 0 0 13px;
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.nx-activity {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.nx-activity-icon {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  background: #ece7ff;
+  color: #754aff;
+  font-size: 9px;
+}
+
+.nx-activity b {
+  display: block;
+  font-size: 6px;
+}
+
+.nx-activity small {
+  display: block;
+  font-size: 5px;
+  color: #aaa8bf;
+  margin-top: 4px;
+}
+
+.nx-usage-chart {
+  width: 100%;
+  height: 140px;
+}
+
+.nx-chart-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 5px;
+  color: #aaa8c0;
+}
+
+.nx-dash-right {
+  padding: 13px 7px;
+  background: white;
+  border-left: 1px solid #eeedf8;
+}
+
+.nx-dash-right h4 {
+  margin: 0 0 16px;
+  font-size: 7px;
+  font-weight: 700;
+}
+
+.nx-agent-row {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.nx-agent-dot {
+  height: 14px;
+  width: 14px;
+  border-radius: 4px;
+  background: #e8e0ff;
+}
+
+.nx-agent-row:nth-child(3n) .nx-agent-dot {
+  background: #dcf5eb;
+}
+
+.nx-agent-row:nth-child(2n) .nx-agent-dot {
+  background: #ffe7d7;
+}
+
+.nx-agent-row span:last-child {
+  font-size: 5px;
+  color: #89869e;
+}
+
+/* Features */
+.nx-features-header {
+  max-width: 1000px;
+  margin: 0 auto 22px;
+  text-align: center;
+}
+
+.nx-features-title {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  color: var(--dark);
+}
+
+.nx-features-subtitle {
+  margin: 10px 0 0;
+  font-size: 14px;
+  color: #74748c;
+}
+
+/* Bottom shortcuts */
+.nx-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 23px;
+  position: relative;
+  z-index: 2;
+  padding-top: 17px;
+}
+
+.nx-shortcut {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.nx-shortcut-icon {
+  width: 43px;
+  height: 43px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 11px;
+  background: #eae7ff;
+  color: #7650ff;
+}
+
+.nx-shortcut-icon svg {
+  width: 23px;
+  height: 23px;
+}
+
+.nx-shortcut:nth-child(2) .nx-shortcut-icon {
+  background: #f0e5ff;
+  color: #a144f5;
+}
+
+.nx-shortcut:nth-child(3) .nx-shortcut-icon {
+  background: #e8ecff;
+  color: #536cff;
+}
+
+.nx-shortcut:nth-child(4) .nx-shortcut-icon {
+  background: #e4f0ff;
+  color: #3d8bff;
+}
+
+.nx-shortcut h2 {
+  margin: 0 0 5px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.nx-shortcut p {
+  margin: 0;
+  font-size: 10px;
+  color: #85839d;
+}
+
+.nx-outline {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@media (min-width: 1500px) {
+  .nx-homepage {
+    display: flex;
+    align-items: center;
+  }
+}
+
+@media (max-width: 950px) {
+  .nx-nav-links {
+    gap: 12px;
+  }
+
+  .nx-nav-links a {
+    font-size: 10px;
+  }
+
+  .nx-hero {
+    min-height: 470px;
+  }
+
+  .nx-preview {
+    width: 600px;
+  }
+
+  .nx-tagline {
+    font-size: 27px;
+  }
+
+  .nx-shortcuts {
+    gap: 12px;
+  }
+
+  .nx-shortcut {
+    gap: 8px;
+  }
+}
+
+@media (max-width: 700px) {
+  .nx-container {
+    width: calc(100% - 32px);
+  }
+
+  .nx-homepage {
+    padding-top: 14px;
+  }
+
+  .nx-navbar {
+    height: 55px;
+    padding: 0 12px;
+  }
+
+  .nx-nav-links {
+    display: none;
+  }
+
+  .nx-logo {
+    font-size: 17px;
+  }
+
+  .nx-nav-actions {
+    gap: 6px;
+  }
+
+  .nx-nav-actions .nx-button {
+    padding: 0 10px;
+  }
+
+  .nx-hero {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+
+  .nx-hero-content {
+    padding: 40px 0 25px;
+  }
+
+  .nx-hero h1 {
+    font-size: 47px;
+  }
+
+  .nx-tagline {
+    font-size: 29px;
+    white-space: normal;
+  }
+
+  .nx-hero-description {
+    max-width: 390px;
+  }
+
+  .nx-preview {
+    width: 620px;
+    margin: 15px 0 35px 10px;
+    transform: perspective(1200px) rotateY(-8deg) rotateZ(2deg);
+  }
+
+  .nx-shortcuts {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nx-button {
+    transition: none;
+  }
+}

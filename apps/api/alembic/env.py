@@ -14,6 +14,9 @@ from alembic import context
 from app.core.config import settings
 from app.db.base import Base
 from app.db import models  # noqa: F401
+from app.modules.security import audit_models  # noqa: F401
+from app.modules.team import models as team_models  # noqa: F401
+from app.modules.settings import models as settings_models  # noqa: F401
 
 # this is the Alembic Config object, which gives
 # access to the values within the .ini file in use.

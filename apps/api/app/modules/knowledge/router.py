@@ -9,6 +9,7 @@ from app.db.session import get_db
 from app.db.models import User, KnowledgeBase, Document, DocumentChunk
 from app.modules.auth.dependencies import get_current_user
 from app.modules.organizations.router import require_membership
+from app.modules.billing.usage import check_knowledge_quota, check_storage_quota
 from app.ai.embeddings import embed_query
 from app.modules.knowledge.schemas import (
     KnowledgeBaseCreate,
@@ -18,6 +19,7 @@ from app.modules.knowledge.schemas import (
     SearchResult,
 )
 from app.core.config import settings
+from app.modules.security.audit import record_audit_event
 from app.worker.tasks import process_document
 
 router = APIRouter(
@@ -60,11 +62,24 @@ def create_knowledge_base(
 ):
     membership = require_membership(db, current_user.id, organization_id)
     require_upload_role(membership)
+    check_knowledge_quota(db, organization_id)
 
     kb = KnowledgeBase(organization_id=organization_id, name=request.name)
     db.add(kb)
     db.commit()
     db.refresh(kb)
+
+    record_audit_event(
+        db,
+        organization_id=organization_id,
+        actor_user_id=current_user.id,
+        action="knowledge.created",
+        resource_type="knowledge_base",
+        resource_id=kb.id,
+        resource_name=kb.name,
+        changes={"before": {}, "after": {"name": kb.name}},
+        summary=f"{current_user.email} created the knowledge source “{kb.name}”.",
+    )
     return kb
 
 
@@ -97,7 +112,7 @@ async def upload_document(
     membership = require_membership(db, current_user.id, organization_id)
     require_upload_role(membership)
 
-    get_knowledge_base(db, organization_id, kb_id)
+    knowledge_base = get_knowledge_base(db, organization_id, kb_id)
 
     raw = await file.read(MAX_FILE_BYTES + 1)
     if len(raw) > MAX_FILE_BYTES:
@@ -114,6 +129,8 @@ async def upload_document(
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
             detail="Only PDF, TXT, and MD files are supported",
         )
+
+    check_storage_quota(db, organization_id, len(raw) / (1024 * 1024))
 
     if is_txt:
         try:
@@ -148,6 +165,26 @@ async def upload_document(
     db.refresh(doc)
     print(f"=== DOC CREATED: {doc.id}, status={doc.status} ===")
 
+    record_audit_event(
+        db,
+        organization_id=organization_id,
+        actor_user_id=current_user.id,
+        action="document.uploaded",
+        resource_type="document",
+        resource_id=doc.id,
+        resource_name=doc.filename,
+        details={
+            "knowledge_base_id": str(kb_id),
+            "knowledge_base_name": knowledge_base.name,
+            "size_bytes": len(raw),
+        },
+        changes={"before": {}, "after": {"filename": doc.filename}},
+        summary=(
+            f"{current_user.email} uploaded the document "
+            f"“{doc.filename}” to “{knowledge_base.name}”."
+        ),
+    )
+
     try:
         process_document.delay(str(doc.id), str(organization_id))
         print("=== TASK QUEUED ===")
@@ -180,6 +217,7 @@ async def delete_document_endpoint(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Document not found",
         )
+    filename = document.filename
 
     if document.storage_key:
         storage_path = Path(settings.document_storage_path) / document.storage_key
@@ -194,6 +232,19 @@ async def delete_document_endpoint(
     )
     db.delete(document)
     db.commit()
+
+    record_audit_event(
+        db,
+        organization_id=organization_id,
+        actor_user_id=current_user.id,
+        action="document.deleted",
+        resource_type="document",
+        resource_id=document_id,
+        resource_name=filename,
+        details={"knowledge_base_id": str(kb_id)},
+        changes={"before": {"filename": filename}, "after": {}},
+        summary=f"{current_user.email} deleted the document “{filename}”.",
+    )
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
