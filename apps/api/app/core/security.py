@@ -15,11 +15,15 @@ def verify_password(password: str, password_hash: str) -> bool:
     return password_hasher.verify(password, password_hash)
 
 
-def create_access_token(user_id: UUID) -> str:
+def create_access_token(user_id: UUID, token_version: int = 0) -> str:
     now = datetime.now(timezone.utc)
     expire = now + timedelta(minutes=settings.jwt_access_token_minutes)
     payload = {
         "sub": str(user_id),
+        # The session version of the account. It changes whenever the
+        # password changes, which invalidates every token that was issued
+        # before that moment.
+        "ver": token_version,
         "iat": now,
         "exp": expire,
     }

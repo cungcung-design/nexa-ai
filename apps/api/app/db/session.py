@@ -9,6 +9,9 @@ engine = create_engine(
     max_overflow=5,
     pool_timeout=30,
     pool_recycle=1800,
+    # A database that is down has to fail fast. Without the timeout the
+    # socket waits for minutes and every request looks like a hang.
+    connect_args={"connect_timeout": 5},
 )
 
 SessionLocal = sessionmaker(

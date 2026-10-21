@@ -1,0 +1,936 @@
+/*
+ * The styles of the onboarding pages.
+ *
+ * The rules mirror the supplied designs: the welcome panel, the workspace
+ * selection, the workspace details, the plan selection, and the first agent.
+ * Every class is prefixed so the sheet never collides with the other screens.
+ */
+
+.nx-ob-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: linear-gradient(135deg, #fafcff, #f3f4ff);
+  color: #211943;
+  font-family: Arial, Helvetica, sans-serif;
+  line-height: normal;
+  -webkit-font-smoothing: antialiased;
+}
+
+.nx-ob-page button,
+.nx-ob-page input,
+.nx-ob-page textarea {
+  font-family: inherit;
+}
+
+.nx-ob-page a {
+  color: #6940ee;
+  text-decoration: none;
+}
+
+.nx-ob-page a:hover {
+  text-decoration: underline;
+}
+
+/* Card shared by the workspace, details, plan, and agent pages */
+.nx-ob-card {
+  width: 100%;
+  max-width: 390px;
+  padding: 26px;
+  border: 1px solid #eceafa;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 10px 35px #7561d006;
+}
+
+.nx-ob-plan-card {
+  width: 100%;
+  max-width: 460px;
+  padding: 27px 26px 24px;
+}
+
+.nx-ob-title {
+  margin: 0 0 8px;
+  font-size: 22px;
+  line-height: 1.25;
+  letter-spacing: -0.6px;
+}
+
+.nx-ob-plan-title {
+  margin: 0 0 8px;
+  font-size: 23px;
+  line-height: 1.25;
+  letter-spacing: -0.6px;
+}
+
+.nx-ob-description {
+  margin: 0 0 20px;
+  color: #91899f;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.nx-ob-plan-description {
+  margin: 0 0 22px;
+  color: #928a9f;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* Workspace selection */
+.nx-ob-options {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.nx-ob-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 12px 14px;
+  border: 1px solid #e5e4f4;
+  border-radius: 7px;
+  background: #fdfdff;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.nx-ob-option:has(input:checked) {
+  border-color: #d0c5ff;
+  background: #f0edff;
+}
+
+.nx-ob-option:has(input:focus-visible) {
+  outline: 2px solid #865dff;
+  outline-offset: 3px;
+}
+
+.nx-ob-radio {
+  position: relative;
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+}
+
+.nx-ob-radio input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.nx-ob-radio-mark {
+  display: grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  border: 1px solid #d8d5e5;
+  border-radius: 50%;
+  background: white;
+  pointer-events: none;
+}
+
+.nx-ob-radio input:checked + .nx-ob-radio-mark {
+  border-color: #7950ff;
+  background: #7950ff;
+}
+
+.nx-ob-radio input:checked + .nx-ob-radio-mark::after {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: white;
+}
+
+.nx-ob-option-title {
+  display: block;
+  margin-bottom: 5px;
+  color: #44395e;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.nx-ob-option-description {
+  display: block;
+  color: #938aa5;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+/* Forms */
+.nx-ob-field {
+  margin-bottom: 15px;
+}
+
+.nx-ob-field label {
+  display: block;
+  margin-bottom: 7px;
+  color: #4f456a;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.nx-ob-input,
+.nx-ob-textarea {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e5e4f3;
+  border-radius: 6px;
+  outline: none;
+  background: #fff;
+  color: #413653;
+  font-family: inherit;
+  font-size: 12px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.nx-ob-input {
+  height: 36px;
+}
+
+.nx-ob-textarea {
+  min-height: 53px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.nx-ob-input::placeholder,
+.nx-ob-textarea::placeholder {
+  color: #b1aabd;
+}
+
+.nx-ob-input:focus,
+.nx-ob-textarea:focus {
+  border-color: #aa8aff;
+  box-shadow: 0 0 0 3px #8652ff0c;
+}
+
+.nx-ob-input[aria-invalid="true"] {
+  border-color: #e0647f;
+}
+
+.nx-ob-continue {
+  display: block;
+  width: 100%;
+  min-height: 35px;
+  margin-top: 22px;
+  border: 1px solid #9064ff;
+  border-radius: 6px;
+  background: linear-gradient(110deg, #925cff, #7643ff);
+  color: white;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.nx-ob-details-continue {
+  margin-top: 5px;
+}
+
+.nx-ob-continue:hover {
+  filter: brightness(1.05);
+}
+
+.nx-ob-continue:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+.nx-ob-continue:focus-visible {
+  outline: 2px solid #8051ff;
+  outline-offset: 4px;
+}
+
+.nx-ob-status {
+  margin: 12px 0 0;
+  color: #827792;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.nx-ob-status:empty {
+  display: none;
+}
+
+.nx-ob-status-error {
+  color: #c2334d;
+}
+
+/* Plans */
+.nx-ob-plans {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.nx-ob-plan {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 141px;
+  padding: 19px 5px 17px;
+  border: 1px solid #e9e6f5;
+  border-radius: 7px;
+  background: white;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.nx-ob-plan:has(input:checked) {
+  border-color: #a184ff;
+  background: #f1edff;
+}
+
+.nx-ob-plan:has(input:focus-visible) {
+  outline: 2px solid #8051ff;
+  outline-offset: 3px;
+}
+
+.nx-ob-badge {
+  position: absolute;
+  top: -8px;
+  right: -5px;
+  padding: 3px 7px;
+  border-radius: 20px;
+  background: #8050ff;
+  color: white;
+  font-size: 7px;
+  font-weight: 600;
+}
+
+.nx-ob-plan-name {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+}
+
+.nx-ob-price {
+  margin: 12px 0 16px;
+  font-size: 23px;
+  line-height: 26px;
+  font-weight: 750;
+  letter-spacing: -0.7px;
+}
+
+.nx-ob-price-custom {
+  font-size: 16px;
+  letter-spacing: -0.4px;
+}
+
+.nx-ob-plan-radio {
+  position: relative;
+  width: 15px;
+  height: 15px;
+}
+
+.nx-ob-plan-radio input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.nx-ob-plan-radio-mark {
+  display: grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  border: 1px solid #b8a8e7;
+  border-radius: 50%;
+  background: white;
+  pointer-events: none;
+}
+
+.nx-ob-plan-radio input:checked + .nx-ob-plan-radio-mark {
+  border-color: #7950ff;
+  background: #7950ff;
+}
+
+.nx-ob-plan-radio input:checked + .nx-ob-plan-radio-mark::after {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: white;
+}
+
+.nx-ob-plan-continue {
+  margin-top: 30px;
+}
+
+/* First agent */
+.nx-ob-agent-template {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 15px 13px;
+  border: 1px solid #e8e6f6;
+  border-radius: 8px;
+  background: linear-gradient(120deg, #fff, #f8f8ff);
+}
+
+.nx-ob-agent-icon {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  border: 1px solid #e4eaff;
+  border-radius: 15px;
+  background: linear-gradient(135deg, #e6f4ff, #e4e9ff);
+  color: #6270ff;
+}
+
+.nx-ob-agent-icon svg {
+  width: 34px;
+  height: 34px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.nx-ob-agent-name {
+  margin: 0 0 7px;
+  color: #493c65;
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+.nx-ob-agent-description {
+  margin: 0;
+  color: #948aa5;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.nx-ob-create {
+  display: block;
+  width: 100%;
+  min-height: 37px;
+  margin-top: 20px;
+  border: 1px solid #9064ff;
+  border-radius: 6px;
+  background: linear-gradient(110deg, #925cff, #7643ff);
+  color: white;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.nx-ob-create:hover {
+  filter: brightness(1.05);
+}
+
+.nx-ob-create:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+.nx-ob-skip {
+  display: block;
+  width: fit-content;
+  margin: 15px auto 0;
+  color: #9376d1;
+  font-size: 10px;
+  text-decoration: none;
+}
+
+.nx-ob-skip:hover {
+  text-decoration: underline;
+}
+
+.nx-ob-center-status {
+  text-align: center;
+}
+
+/* Welcome */
+.nx-ob-welcome {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  align-items: center;
+  width: min(850px, 100%);
+  min-height: 405px;
+  padding: 32px 38px;
+  overflow: hidden;
+  border: 1px solid #e8e8fa;
+  border-radius: 15px;
+  background:
+    radial-gradient(ellipse at 89% 43%, #e0dcff 0, transparent 59%),
+    linear-gradient(120deg, #fff 15%, #fafaff 55%, #ece9ff);
+}
+
+.nx-ob-welcome-content {
+  position: relative;
+  z-index: 2;
+}
+
+.nx-ob-welcome-title {
+  margin: 0 0 12px;
+  font-size: 27px;
+  line-height: 1.2;
+  letter-spacing: -0.8px;
+}
+
+.nx-ob-welcome-description {
+  max-width: 290px;
+  margin: 0 0 22px;
+  color: #8a849e;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.nx-ob-steps {
+  display: grid;
+  gap: 14px;
+  margin: 0 0 28px;
+  padding: 0;
+  list-style: none;
+}
+
+.nx-ob-steps li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #77708f;
+  font-size: 12px;
+}
+
+.nx-ob-step-number {
+  display: grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+  border: 1.5px solid #c7b9ff;
+  border-radius: 50%;
+  color: #9878ff;
+  background: #f9f7ff;
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.nx-ob-steps li:first-child .nx-ob-step-number {
+  border-color: #a78aff;
+  background: #ede7ff;
+  color: #7c51f5;
+}
+
+.nx-ob-steps li.nx-ob-step-done .nx-ob-step-number {
+  border-color: #7bd0a6;
+  background: #e6f8ef;
+  color: #1f9d63;
+}
+
+.nx-ob-steps li.nx-ob-step-done {
+  color: #4c4468;
+}
+
+.nx-ob-start {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 182px;
+  min-height: 37px;
+  padding: 0 24px;
+  border: 1px solid #9168ff;
+  border-radius: 6px;
+  background: linear-gradient(110deg, #8e5aff, #6e3fff);
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 4px 10px #7543ff18;
+}
+
+.nx-ob-start:hover {
+  filter: brightness(1.05);
+}
+
+.nx-ob-start:focus-visible {
+  outline: 2px solid #7543ff;
+  outline-offset: 4px;
+}
+
+.nx-ob-illustration {
+  position: relative;
+  height: 300px;
+  margin-left: 10px;
+}
+
+.nx-ob-back-window {
+  position: absolute;
+  width: 250px;
+  height: 225px;
+  top: 14px;
+  left: 95px;
+  border: 1px solid #eae5ff;
+  border-radius: 11px;
+  background: #ffffff90;
+  box-shadow: 0 10px 25px #7353dd0c;
+  transform: rotate(2deg);
+}
+
+.nx-ob-back-window::before {
+  content: "•••";
+  display: block;
+  margin: 10px;
+  color: #d1c8ee;
+  font-size: 11px;
+  border-bottom: 1px solid #efebfc;
+  padding-bottom: 6px;
+}
+
+.nx-ob-dashboard {
+  position: absolute;
+  top: 35px;
+  left: 33px;
+  width: 305px;
+  height: 235px;
+  display: grid;
+  grid-template-columns: 16px 58px 1fr;
+  overflow: hidden;
+  border: 5px solid #ffffffd9;
+  border-radius: 10px;
+  background: #f8f9ff;
+  box-shadow: 0 14px 30px #7353dd22;
+  transform: perspective(900px) rotateY(-9deg) rotateZ(3deg);
+}
+
+.nx-ob-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding-top: 8px;
+  background: #211951;
+  color: #c3b4ff;
+  font-size: 7px;
+}
+
+.nx-ob-sidebar {
+  padding: 9px 5px;
+  background: white;
+  border-right: 1px solid #eeecf8;
+}
+
+.nx-ob-mini-brand {
+  margin-bottom: 12px;
+  font-size: 6px;
+  color: #7045ef;
+  font-weight: bold;
+}
+
+.nx-ob-nav-line {
+  padding: 5px 2px;
+  color: #9d95b6;
+  font-size: 4px;
+  white-space: nowrap;
+}
+
+.nx-ob-nav-line-active {
+  border-radius: 3px;
+  background: #f0eaff;
+  color: #794fff;
+}
+
+.nx-ob-dashboard-main {
+  padding: 8px;
+  min-width: 0;
+}
+
+.nx-ob-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 7px;
+  border-bottom: 1px solid #eeecf8;
+}
+
+.nx-ob-search {
+  width: 60%;
+  height: 9px;
+  border: 1px solid #eeeaf9;
+  border-radius: 3px;
+  background: white;
+}
+
+.nx-ob-create-chip {
+  padding: 3px 5px;
+  background: #8155ff;
+  border-radius: 3px;
+  color: white;
+  font-size: 4px;
+}
+
+.nx-ob-mini-heading {
+  margin: 9px 0 7px;
+  font-size: 6px;
+}
+
+.nx-ob-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+
+.nx-ob-stat {
+  padding: 6px 4px;
+  border: 1px solid #eeecf8;
+  border-radius: 4px;
+  background: white;
+}
+
+.nx-ob-stat small {
+  display: block;
+  font-size: 3px;
+  color: #a19ab7;
+  margin-bottom: 4px;
+}
+
+.nx-ob-stat strong {
+  font-size: 9px;
+  color: #7c55e5;
+}
+
+.nx-ob-stat:nth-child(2) strong {
+  color: #40b5ad;
+}
+
+.nx-ob-stat:nth-child(3) strong {
+  color: #db9c44;
+}
+
+.nx-ob-panels {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 5px;
+  margin-top: 7px;
+}
+
+.nx-ob-panel {
+  min-width: 0;
+  padding: 5px;
+  border: 1px solid #eeecf8;
+  border-radius: 4px;
+  background: white;
+}
+
+.nx-ob-panel h3 {
+  font-size: 4px;
+  margin: 0 0 7px;
+}
+
+.nx-ob-chart {
+  display: block;
+  width: 100%;
+  height: 65px;
+}
+
+.nx-ob-activity-line {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.nx-ob-activity-dot {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border-radius: 3px;
+  background: #eee6ff;
+}
+
+.nx-ob-activity-text {
+  height: 3px;
+  width: 80%;
+  border-radius: 3px;
+  background: #e7e2f4;
+}
+
+.nx-ob-bottom-lines {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.nx-ob-bottom-lines span {
+  height: 4px;
+  border-radius: 3px;
+  background: #e9e5f5;
+}
+
+.nx-ob-bottom-lines span:nth-child(2) {
+  width: 75%;
+}
+
+.nx-ob-tile {
+  position: absolute;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 43px;
+  height: 43px;
+  border: 1px solid #ffffffd9;
+  border-radius: 13px;
+  background: linear-gradient(145deg, white, #f4efff);
+  box-shadow: 0 6px 15px #7854d724;
+  color: #7b45ff;
+}
+
+.nx-ob-tile svg {
+  width: 23px;
+  height: 23px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.nx-ob-tile-one {
+  left: 23px;
+  top: 42px;
+}
+
+.nx-ob-tile-two {
+  left: -25px;
+  top: 98px;
+  color: #46b0e9;
+  width: 37px;
+  height: 37px;
+}
+
+.nx-ob-tile-three {
+  left: -43px;
+  top: 156px;
+  color: #7045ff;
+}
+
+.nx-ob-tile-four {
+  left: 25px;
+  top: 224px;
+}
+
+.nx-ob-tile-five {
+  right: -8px;
+  top: 136px;
+  color: #e39348;
+}
+
+.nx-ob-tile-six {
+  right: 34px;
+  top: 239px;
+  color: #5675ff;
+}
+
+@media (max-width: 760px) {
+  .nx-ob-welcome {
+    padding: 30px 25px;
+  }
+
+  .nx-ob-illustration {
+    transform: scale(0.85);
+    transform-origin: left center;
+  }
+
+  .nx-ob-welcome-title {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 600px) {
+  .nx-ob-page {
+    padding: 16px;
+  }
+
+  .nx-ob-welcome {
+    grid-template-columns: 1fr;
+    max-width: 420px;
+    padding: 30px 26px 20px;
+  }
+
+  .nx-ob-illustration {
+    width: 350px;
+    margin: 10px 0 -15px;
+    transform: scale(0.86);
+    transform-origin: left top;
+  }
+
+  .nx-ob-welcome-description {
+    max-width: 290px;
+  }
+}
+
+@media (max-width: 400px) {
+  .nx-ob-page {
+    padding: 18px;
+  }
+
+  .nx-ob-card {
+    padding: 23px 20px;
+  }
+
+  .nx-ob-title {
+    font-size: 21px;
+  }
+
+  .nx-ob-agent-template {
+    gap: 11px;
+  }
+
+  .nx-ob-agent-icon {
+    width: 55px;
+    height: 60px;
+  }
+}
+
+@media (max-width: 380px) {
+  .nx-ob-page {
+    padding: 14px;
+  }
+
+  .nx-ob-plan-card {
+    padding: 24px 16px;
+  }
+
+  .nx-ob-plans {
+    gap: 6px;
+  }
+
+  .nx-ob-plan-name {
+    font-size: 9px;
+  }
+
+  .nx-ob-price {
+    font-size: 21px;
+  }
+
+  .nx-ob-price-custom {
+    font-size: 13px;
+  }
+}

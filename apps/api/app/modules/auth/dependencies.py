@@ -52,4 +52,14 @@ def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    # The session version of the token has to match the account. A password
+    # change bumps the version and therefore signs every earlier token out.
+    token_version = payload.get("ver", 0)
+    if not isinstance(token_version, int) or token_version != user.token_version:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Session expired, please sign in again",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     return user

@@ -11,6 +11,28 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_access_token_minutes: int = 15
 
+    #: Lifetime of a password reset link and the guards around the request
+    #: endpoint. The cooldown keeps a single account from flooding the mail
+    #: server, the window limit caps the number of links per hour.
+    password_reset_token_minutes: int = 30
+    password_reset_cooldown_seconds: int = 60
+    password_reset_max_requests: int = 5
+    password_reset_request_window_minutes: int = 60
+    #: Without a mail server the reset link is returned in the response so the
+    #: flow stays testable. The flag is ignored outside of development.
+    password_reset_dev_expose_link: bool = True
+
+    #: Outgoing mail server. Without a host the mailer falls back to the
+    #: development sink, which never writes a token to a log.
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    smtp_from_email: str = ""
+    smtp_from_name: str = "Nexa AI"
+    smtp_use_starttls: bool = True
+    smtp_timeout_seconds: int = 10
+
     llm_base_url: str = "http://localhost:11434/v1"
     llm_api_key: str = "ollama"
     llm_default_model: str = "qwen3:4b"

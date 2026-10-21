@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 
 import { EyeIcon, GoogleIcon } from "@/components/public/auth-icons";
+import { resolveAfterAuth } from "@/lib/onboarding";
 
 const MIN_PASSWORD_LENGTH = 12;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -92,8 +93,17 @@ export function AuthForm({ mode, next }: { mode: AuthMode; next?: string }) {
         return;
       }
 
-      setStatus("Signed in. Redirecting to your workspace...");
-      window.location.assign(next && next.startsWith("/") ? next : "/dashboard");
+      setStatus(
+        isRegister
+          ? "Account created. Confirm your email address..."
+          : "Signed in. Redirecting to your workspace..."
+      );
+      // A new account confirms the address first, an account that still runs
+      // through the onboarding continues there.
+      const target = isRegister
+        ? "/verify-email"
+        : await resolveAfterAuth(next);
+      window.location.assign(target);
     } catch {
       setError("Network error. Please retry.");
       setStatus("");

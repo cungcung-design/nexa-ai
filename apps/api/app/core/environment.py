@@ -16,6 +16,8 @@ def require_production_settings() -> None:
         "DATABASE_URL",
         "REDIS_URL",
         "JWT_SECRET",
+        "SMTP_HOST",
+        "SMTP_FROM_EMAIL",
     ]
     missing = [
         name

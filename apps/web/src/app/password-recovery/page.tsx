@@ -1,26 +1,24 @@
-import Link from "next/link";
-import { AuthLayout } from "@/components/auth-layout";
+import type { Metadata } from "next";
 
-export default function PasswordRecoveryPage() {
-  return (
-    <AuthLayout
-      eyebrow="Account access"
-      title="Password recovery"
-      description="Password reset is not available for this workspace yet."
-    >
-      <div
-        role="status"
-        className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900"
-      >
-        The connected authentication service does not currently provide a
-        password reset endpoint. Contact your workspace administrator for help.
-      </div>
-      <Link
-        href="/login"
-        className="mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-indigo-600 px-4 py-2.5 font-semibold text-white transition-colors hover:bg-indigo-700"
-      >
-        Return to sign in
-      </Link>
-    </AuthLayout>
-  );
+import { PasswordRecoveryFlow } from "@/components/public/password-recovery-flow";
+
+export const metadata: Metadata = {
+  title: "Reset your password — Nexa AI",
+  description: "Request a password reset link for your Nexa AI account.",
+};
+
+// The page reads the reset token from the query string, so it renders at
+// request time instead of being prerendered.
+export const instant = false;
+
+export default async function PasswordRecoveryPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const query = await searchParams;
+  const raw = query.token;
+  const token = typeof raw === "string" ? raw.trim() : "";
+
+  return <PasswordRecoveryFlow initialToken={token} />;
 }

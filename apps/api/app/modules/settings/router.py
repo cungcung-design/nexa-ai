@@ -322,6 +322,8 @@ def change_password(
         )
 
     current_user.password_hash = hash_password(payload.new_password)
+    # The bump signs every session that was opened before this moment out.
+    current_user.token_version = int(current_user.token_version or 0) + 1
     db.commit()
 
     _record_for_workspaces(
