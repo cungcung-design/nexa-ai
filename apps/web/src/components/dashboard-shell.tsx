@@ -317,8 +317,7 @@ export function DashboardShell({
             <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-400 text-white shadow-md shadow-blue-500/20">
               <Box className="size-4" />
             </span>
-            <span>NEXORA</span>{" "}
-            <span className="text-blue-600 font-light">AI</span>
+            <span>NEXORA</span>
           </Link>
           <button
             aria-label="Close navigation"

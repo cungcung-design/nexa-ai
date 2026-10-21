@@ -114,7 +114,7 @@ export function EmbeddedChat({ deploymentId }: { deploymentId: string }) {
         }}
       >
         <div style={{ fontWeight: 600, fontSize: "16px", color: "#111827" }}>
-          {config?.name || "Nexa AI Assistant"}
+          {config?.name || "NEXORA Assistant"}
         </div>
         <div style={{ fontSize: "12px", color: "#6b7280", marginTop: "4px" }}>
           AI-powered support
@@ -146,7 +146,7 @@ export function EmbeddedChat({ deploymentId }: { deploymentId: string }) {
               Hello! How can I help you today?
             </div>
             <div style={{ fontSize: "11px", color: "#0369a1", marginTop: "4px" }}>
-              Nexa AI
+              NEXORA
             </div>
           </div>
         )}
@@ -257,7 +257,7 @@ export function EmbeddedChat({ deploymentId }: { deploymentId: string }) {
         }}
       >
         <span style={{ fontSize: "11px", color: "#9ca3af" }}>
-          Powered by Nexa AI
+          Powered by NEXORA
         </span>
       </div>
     </div>

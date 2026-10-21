@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    app_name: str = "Nexa AI API"
+    app_name: str = "NEXORA API"
     app_env: str = "development"
     database_url: str
     frontend_url: str = "http://localhost:3000"
@@ -29,9 +29,14 @@ class Settings(BaseSettings):
     smtp_username: str = ""
     smtp_password: str = ""
     smtp_from_email: str = ""
-    smtp_from_name: str = "Nexa AI"
+    smtp_from_name: str = "NEXORA"
     smtp_use_starttls: bool = True
     smtp_timeout_seconds: int = 10
+
+    #: Inbox that receives the messages of the contact form. The message is
+    #: stored in the database as well, so a missing mail server never loses a
+    #: request.
+    contact_inbox_email: str = "hello@nexora.ai"
 
     llm_base_url: str = "http://localhost:11434/v1"
     llm_api_key: str = "ollama"

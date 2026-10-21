@@ -243,7 +243,7 @@ button:disabled {
 }
 
 
-/* Dashboard-specific styles - NEXORA AI Design System */
+/* Dashboard-specific styles - NEXORA Design System */
 .dashboard-bg {
   background: #f4f7fc;
 }
@@ -337,7 +337,7 @@ button:disabled {
   background: #ef4444;
 }
 
-/* NEXORA AI Dashboard - light theme overrides */
+/* NEXORA Dashboard - light theme overrides */
 .app-shell[data-theme="light"] {
   --background: #f4f7fc;
   --surface: #ffffff;

@@ -44,7 +44,9 @@ export function VerifyEmailView({ token }: { token: string | null }) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [link, setLink] = useState<string | null>(null);
+  const [delivery, setDelivery] = useState<"idle" | "smtp" | "development">("idle");
   const confirmed = useRef(false);
+  const issued = useRef(false);
 
   // The countdown of the resend button.
   useEffect(() => {
@@ -56,7 +58,64 @@ export function VerifyEmailView({ token }: { token: string | null }) {
     return () => window.clearInterval(timer);
   }, [countdown]);
 
-  // The status of the address of the signed in user.
+  const requestEmail = useCallback(async () => {
+    setBusy(true);
+    setError("");
+    setStatus("Sending a verification email...");
+    try {
+      const response = await fetch("/api/auth/verification/send", {
+        method: "POST",
+      });
+      const data = (await response.json().catch(() => ({}))) as SendResponse & {
+        detail?: string;
+        error?: string;
+      };
+      if (response.status === 429) {
+        const match =
+          typeof data.detail === "string"
+            ? data.detail.match(/(\d+)\s+seconds?/)
+            : null;
+        if (match) setCountdown(Number(match[1]));
+        setStatus("");
+        setError(
+          typeof data.detail === "string"
+            ? data.detail
+            : "A verification email was sent recently."
+        );
+        return;
+      }
+      if (!response.ok) {
+        setStatus("");
+        setError(
+          typeof data.detail === "string"
+            ? data.detail
+            : typeof data.error === "string"
+              ? data.error
+              : "The verification email could not be sent."
+        );
+        return;
+      }
+      if (data.delivery === "development" && data.verification_url) {
+        setLink(data.verification_url);
+        setDelivery("development");
+        setCountdown(0);
+        setStatus("");
+        return;
+      }
+      setLink(null);
+      setDelivery("smtp");
+      setCountdown(data.retry_after_seconds || data.cooldown_seconds || 45);
+      setStatus("A new verification email is on its way.");
+    } catch {
+      setStatus("");
+      setError("Network error. Please retry.");
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
+  // The status of the address of the signed in user. A new account has not
+  // been sent anything yet, so the first visit issues the verification link.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -73,12 +132,15 @@ export function VerifyEmailView({ token }: { token: string | null }) {
       if (cancelled) return;
       setEmail(data.email);
       setVerified(data.verified);
-      setCountdown(data.cooldown_seconds);
+      if (data.verified || issued.current) return;
+      if (data.cooldown_seconds > 0) setCountdown(data.cooldown_seconds);
+      issued.current = true;
+      await requestEmail();
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [requestEmail]);
 
   // The token of the verification link.
   const confirm = useCallback(async (value: string) => {
@@ -119,34 +181,7 @@ export function VerifyEmailView({ token }: { token: string | null }) {
 
   async function resend() {
     if (busy || countdown > 0) return;
-    setBusy(true);
-    setError("");
-    setStatus("Sending a new verification email...");
-    try {
-      const response = await fetch("/api/auth/verification/send", {
-        method: "POST",
-      });
-      const data = (await response.json().catch(() => ({}))) as SendResponse & {
-        detail?: string;
-      };
-      if (!response.ok) {
-        setStatus("");
-        setError(
-          typeof data.detail === "string"
-            ? data.detail
-            : "The verification email could not be sent."
-        );
-        return;
-      }
-      setStatus("A new verification email is on its way.");
-      setCountdown(data.retry_after_seconds || 45);
-      setLink(data.verification_url ?? null);
-    } catch {
-      setStatus("");
-      setError("Network error. Please retry.");
-    } finally {
-      setBusy(false);
-    }
+    await requestEmail();
   }
 
   const provider = EMAIL_PROVIDERS[0];
@@ -166,7 +201,11 @@ export function VerifyEmailView({ token }: { token: string | null }) {
         </div>
 
         <h1 className="m-[0_0_11px] text-[23px] font-bold leading-[1.25] tracking-tight text-[#171717]">
-          {verified ? "Email confirmed" : "Check your email"}
+          {verified
+            ? "Email confirmed"
+            : delivery === "development"
+              ? "Verify your email"
+              : "Check your email"}
         </h1>
 
         {verified ? (
@@ -174,9 +213,18 @@ export function VerifyEmailView({ token }: { token: string | null }) {
             Your email address is confirmed. Continue with the setup of your
             workspace.
           </p>
+        ) : delivery === "development" ? (
+          <p className="m-0 text-[13px] leading-[1.6] text-[#8a839e]">
+            No mail server is configured, so nothing was delivered to
+            <strong className="block break-words font-semibold text-[#514767]">
+              {email || "your email address"}.
+            </strong>
+          </p>
         ) : (
           <p className="m-0 text-[13px] leading-[1.6] text-[#8a839e]">
-            We&apos;ve sent a verification link to
+            {delivery === "smtp"
+              ? "We've sent a verification link to"
+              : "Preparing a verification link for"}
             <strong className="block break-words font-semibold text-[#514767]">
               {email || "your email address"}.
             </strong>
@@ -186,17 +234,21 @@ export function VerifyEmailView({ token }: { token: string | null }) {
         {!verified && (
           <>
             <p className="m-[12px_0_18px] text-[12px] leading-[1.6] text-[#8a839e]">
-              Click the link in the email to verify your account.
+              {delivery === "development"
+                ? "Open the verification link below to verify your account."
+                : "Click the link in the email to verify your account."}
             </p>
 
-            <a
-              className="inline-flex min-h-[35px] min-w-[146px] items-center justify-center rounded-[6px] border border-[#9169ff] bg-gradient-to-r from-[#9361ff] to-[#7542ff] px-5 text-[12px] font-semibold text-white no-underline shadow-sm transition-all hover:brightness-105"
-              href={provider.url}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Open Email
-            </a>
+            {delivery === "smtp" && (
+              <a
+                className="inline-flex min-h-[35px] min-w-[146px] items-center justify-center rounded-[6px] border border-[#9169ff] bg-gradient-to-r from-[#9361ff] to-[#7542ff] px-5 text-[12px] font-semibold text-white no-underline shadow-sm transition-all hover:brightness-105"
+                href={provider.url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Open Email
+              </a>
+            )}
 
             <button
               className="mx-auto mt-[14px] cursor-pointer border-0 bg-transparent p-0.5 font-sans text-[11px] text-[#8b71c6] disabled:cursor-default disabled:text-[#aaa1bc]"
@@ -217,13 +269,12 @@ export function VerifyEmailView({ token }: { token: string | null }) {
         )}
 
         {link && !verified && (
-          <p className="m-[12px_0_0] text-[11px] leading-[1.6] text-[#8a839e]">
-            No mail server is configured in this environment, so the link is
-            shown here:{" "}
-            <Link className="font-semibold text-[#6940ee]" href={link}>
-              open the verification link
-            </Link>
-          </p>
+          <Link
+            className="mt-[14px] inline-flex min-h-[35px] min-w-[146px] items-center justify-center rounded-[6px] border border-[#9169ff] bg-gradient-to-r from-[#9361ff] to-[#7542ff] px-5 text-[12px] font-semibold text-white no-underline shadow-sm transition-all hover:brightness-105"
+            href={link}
+          >
+            Verify your email
+          </Link>
         )}
 
         <p

@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 import { PasswordRecoveryFlow } from "@/components/public/password-recovery-flow";
 
 export const metadata: Metadata = {
-  title: "Reset your password — Nexa AI",
-  description: "Request a password reset link for your Nexa AI account.",
+  title: "Reset your password — NEXORA",
+  description: "Request a password reset link for your NEXORA account.",
 };
 
 // The page reads the reset token from the query string, so it renders at

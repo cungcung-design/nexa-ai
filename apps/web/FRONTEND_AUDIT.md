@@ -1,4 +1,4 @@
-# Nexa AI frontend audit
+# NEXORA frontend audit
 
 ## Scope reviewed
 

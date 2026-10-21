@@ -74,7 +74,7 @@ export default function OnboardingWelcomePage() {
       <div className="nx-ob-welcome">
         <section className="nx-ob-welcome-content" aria-labelledby="welcome-title">
           <h1 className="nx-ob-welcome-title" id="welcome-title">
-            Welcome to Nexa AI
+            Welcome to NEXORA
           </h1>
 
           <p className="nx-ob-welcome-description">
@@ -124,7 +124,7 @@ export default function OnboardingWelcomePage() {
             </div>
 
             <div className="nx-ob-sidebar">
-              <div className="nx-ob-mini-brand">✣ Nexa AI</div>
+              <div className="nx-ob-mini-brand">✣ NEXORA</div>
               <div className="nx-ob-nav-line nx-ob-nav-line-active">▣ Dashboard</div>
               <div className="nx-ob-nav-line">♧ AI Agents</div>
               <div className="nx-ob-nav-line">⌘ Workflows</div>

@@ -10,7 +10,7 @@ export function AgentDomainModel() {
             <p className="text-[10px] font-bold text-purple-700 uppercase tracking-wider">
               Organization
             </p>
-            <p className="text-xs font-semibold text-purple-900">NEXORA AI</p>
+            <p className="text-xs font-semibold text-purple-900">NEXORA</p>
           </div>
         </div>
 

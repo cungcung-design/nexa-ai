@@ -22,7 +22,7 @@ export function AuthLayout({
           <span className="grid size-10 place-items-center rounded-xl bg-indigo-600 text-white shadow-sm">
             <BrainCircuit className="size-5" />
           </span>
-          Nexa AI
+          NEXORA
         </Link>
         <div className="my-12 max-w-xl lg:my-0">
           <p className="mb-4 text-xs font-semibold uppercase tracking-[0.16em] text-indigo-700">

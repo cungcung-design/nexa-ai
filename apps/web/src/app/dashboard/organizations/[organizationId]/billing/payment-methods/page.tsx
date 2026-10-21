@@ -37,7 +37,7 @@ export default async function BillingPaymentMethodsPage({
 
       <BillingFooterNote>
         Cards are collected by the payment provider in its own secure form.
-        Nexa-AI never receives the full card number, and the workspace only
+        NEXORA never receives the full card number, and the workspace only
         keeps the provider reference and the masked card details.
       </BillingFooterNote>
     </BillingCard>

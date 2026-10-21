@@ -80,7 +80,7 @@ const CHANNEL_ROWS: {
   {
     key: "in_app_channel",
     title: "In app",
-    description: "Show the notification inside Nexa AI",
+    description: "Show the notification inside NEXORA",
   },
 ];
 

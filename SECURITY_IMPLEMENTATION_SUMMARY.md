@@ -1,4 +1,4 @@
-# Nexa AI Security Implementation Summary
+# NEXORA Security Implementation Summary
 
 I have implemented the security features for Lesson 13 as requested. Here's what was created:
 

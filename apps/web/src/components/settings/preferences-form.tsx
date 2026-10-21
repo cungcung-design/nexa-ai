@@ -129,7 +129,7 @@ export function PreferencesForm({
     <div className="grid gap-4">
       <SettingsCard
         title="Interface"
-        description="How Nexa AI looks and reads in this browser."
+        description="How NEXORA looks and reads in this browser."
         chip={<SettingsChip>For you</SettingsChip>}
         bodyClassName="divide-y divide-[#eeeeee]"
       >

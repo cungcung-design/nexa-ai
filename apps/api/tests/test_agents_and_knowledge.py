@@ -307,7 +307,7 @@ def test_agent_lifecycle_permissions_and_knowledge_retrieval(client: TestClient)
                 "file": (
                     "nexa-test.txt",
                     (
-                        "Nexa AI is a multi-tenant AI SaaS platform.\n"
+                        "NEXORA is a multi-tenant AI SaaS platform.\n"
                         "The platform uses Next.js, FastAPI, PostgreSQL, and LangGraph.\n"
                         f"Confidential note {secret}.\n"
                     ).encode(),
@@ -353,7 +353,7 @@ def test_agent_lifecycle_permissions_and_knowledge_retrieval(client: TestClient)
             files={
                 "file": (
                     "stack.pdf",
-                    _pdf_bytes("Nexa AI uses PostgreSQL and LangGraph"),
+                    _pdf_bytes("NEXORA uses PostgreSQL and LangGraph"),
                     "application/pdf",
                 )
             },
@@ -365,7 +365,7 @@ def test_agent_lifecycle_permissions_and_knowledge_retrieval(client: TestClient)
             f"/api/v1/organizations/{org_id}/knowledge/{knowledge_base_id}/search",
             headers=_auth(owner),
             json={
-                "query": "What technologies does Nexa AI use?",
+                "query": "What technologies does NEXORA use?",
                 "limit": 3,
             },
         )

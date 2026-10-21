@@ -136,7 +136,9 @@ def send_email_verification(
             detail="This email address is already verified.",
         )
 
-    remaining = _verification_cooldown_remaining(current_user)
+    # A configured mail server is the only case that should rate limit sends.
+    mail_configured = smtp_is_configured()
+    remaining = _verification_cooldown_remaining(current_user) if mail_configured else 0
     if remaining > 0:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
@@ -152,16 +154,14 @@ def send_email_verification(
     current_user.email_verification_expires_at = now + timedelta(
         minutes=EMAIL_VERIFICATION_TTL_MINUTES
     )
-    current_user.email_verification_sent_at = now
+    # Without a mail server there is no inbox to protect, so the page can
+    # issue a fresh link instead of pretending a message was delivered.
+    current_user.email_verification_sent_at = now if mail_configured else None
     db.commit()
 
     link = _verification_link(token)
-    delivery = "smtp"
-    if not smtp_is_configured():
-        # Without a mail server the link is returned so the flow stays usable
-        # in the development environment.
-        delivery = "development"
-    else:
+    delivery = "smtp" if mail_configured else "development"
+    if mail_configured:
         try:
             send_email_verification_email(
                 to_email=current_user.email,
@@ -169,16 +169,21 @@ def send_email_verification(
                 expires_in_minutes=EMAIL_VERIFICATION_TTL_MINUTES,
             )
         except EmailDeliveryError as error:
+            current_user.email_verification_token_hash = None
+            current_user.email_verification_expires_at = None
+            current_user.email_verification_sent_at = None
+            db.commit()
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail=str(error),
             ) from error
 
+    cooldown = EMAIL_VERIFICATION_COOLDOWN_SECONDS if mail_configured else 0
     return EmailVerificationSendResponse(
-        sent=True,
+        sent=mail_configured,
         email=current_user.email,
-        cooldown_seconds=EMAIL_VERIFICATION_COOLDOWN_SECONDS,
-        retry_after_seconds=EMAIL_VERIFICATION_COOLDOWN_SECONDS,
+        cooldown_seconds=cooldown,
+        retry_after_seconds=cooldown,
         expires_in_minutes=EMAIL_VERIFICATION_TTL_MINUTES,
         delivery=delivery,
         verification_url=link if delivery == "development" else None,

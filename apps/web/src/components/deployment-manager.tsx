@@ -272,7 +272,7 @@ export function DeploymentManager({
             <h2 className="text-lg font-semibold">Embed instructions</h2>
           </div>
           <p className="mb-4 text-sm text-zinc-400">
-            Host the Nexa AI widget loader at the URL below, then copy this
+            Host the NEXORA widget loader at the URL below, then copy this
             snippet into your website.
           </p>
           <label className="block text-sm text-zinc-300">

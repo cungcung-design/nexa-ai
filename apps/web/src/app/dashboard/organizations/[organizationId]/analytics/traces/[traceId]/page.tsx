@@ -151,7 +151,7 @@ export default async function TraceDetailPage({
 
         <div className="mt-6 pt-4 border-t border-gray-100">
           <p className="text-xs text-gray-400">
-            Example timeline. The real screen must display only events captured by Nexa AI.
+            Example timeline. The real screen must display only events captured by NEXORA.
           </p>
         </div>
       </div>

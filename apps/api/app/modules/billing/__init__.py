@@ -1,1 +1,1 @@
-# Nexa AI Billing Module
+# NEXORA Billing Module

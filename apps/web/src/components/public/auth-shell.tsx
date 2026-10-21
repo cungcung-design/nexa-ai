@@ -24,13 +24,13 @@ export function AuthVisual({ variant }: { variant: "login" | "register" }) {
       : [BrainIcon, WorkflowIcon, BotIcon, HeadsetIcon];
 
   return (
-    <aside className="nx-auth-visual" aria-label="Nexa AI">
+    <aside className="nx-auth-visual" aria-label="NEXORA">
       <div className="nx-auth-ribbon nx-auth-ribbon-one" />
       <div className="nx-auth-ribbon nx-auth-ribbon-two" />
       <div className="nx-auth-ribbon nx-auth-ribbon-three" />
 
       <div className="nx-auth-brand-copy">
-        <h2>Nexa AI</h2>
+        <h2>NEXORA</h2>
         <p>Build. Automate. Grow.</p>
       </div>
 

@@ -4,21 +4,21 @@ import { LegalPage } from "@/components/public/legal-page";
 import "@/app/auth.css";
 
 export const metadata: Metadata = {
-  title: "Terms of Service — Nexa AI",
-  description: "The terms that apply to the use of the Nexa AI platform.",
+  title: "Terms of Service — NEXORA",
+  description: "The terms that apply to the use of the NEXORA AI Platform.",
 };
 
 export default function TermsPage() {
   return (
     <LegalPage title="Terms of Service">
       <p>
-        These terms describe the agreement between you and Nexa AI when you use
+        These terms describe the agreement between you and NEXORA when you use
         the platform, the workspace, and the services that are included in your
         plan.
       </p>
       <p>
         You keep the ownership of the data you upload to your workspace. You
-        grant Nexa AI the permission to process that data only to deliver the
+        grant NEXORA the permission to process that data only to deliver the
         services you asked for.
       </p>
       <p>

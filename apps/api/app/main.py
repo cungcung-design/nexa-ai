@@ -29,11 +29,12 @@ from app.modules.settings.router import (
 )
 from app.modules.health.router import router as health_router
 from app.modules.onboarding.router import router as onboarding_router
+from app.modules.contact.router import router as contact_router
 
 app = FastAPI(
     title=settings.app_name,
     version="0.1.0",
-    description="Nexa AI SaaS Backend",
+    description="NEXORA AI Platform",
 )
 
 require_production_settings()
@@ -70,3 +71,4 @@ app.include_router(personal_settings_router)
 app.include_router(workspace_settings_router)
 app.include_router(health_router)
 app.include_router(onboarding_router)
+app.include_router(contact_router)

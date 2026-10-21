@@ -7,8 +7,8 @@ import { safeNextPath } from "@/lib/navigation";
 import "../auth.css";
 
 export const metadata: Metadata = {
-  title: "Sign Up — Nexa AI",
-  description: "Start building with Nexa AI.",
+  title: "Sign Up — NEXORA",
+  description: "Start building with NEXORA.",
 };
 
 // The page reads the sign in redirect from the query string, so it renders
@@ -28,7 +28,7 @@ export default async function RegisterPage({
       variant="register"
       brandIcon={<AccountIcon className="nx-auth-icon" />}
       title="Create your account"
-      description="Start building with Nexa AI."
+      description="Start building with NEXORA."
     >
       <AuthForm mode="register" next={next} />
     </AuthShell>

@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 import { ChoosePlanView } from "./choose-plan-view";
 
 export const metadata: Metadata = {
-  title: "Choose your plan — Nexa AI",
-  description: "Pick the plan of your Nexa AI workspace.",
+  title: "Choose your plan — NEXORA",
+  description: "Pick the plan of your NEXORA workspace.",
 };
 
 // The page reads the result of the checkout from the query string, so it

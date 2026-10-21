@@ -1442,3 +1442,25 @@ class ApprovalAssignment(Base):
         DateTime(timezone=True), default=utc_now
     )
 
+
+class ContactMessage(Base):
+    """A message that a visitor sent through the contact form.
+
+    The row keeps the request even when no mail server is available, so the
+    team can answer the message later.
+    """
+
+    __tablename__ = "contact_messages"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    email: Mapped[str] = mapped_column(String(320), nullable=False)
+    subject: Mapped[str] = mapped_column(String(60), nullable=False)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, index=True
+    )

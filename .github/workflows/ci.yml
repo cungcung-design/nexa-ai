@@ -1,4 +1,4 @@
-name: Nexa AI CI
+name: NEXORA CI
 
 on:
   push:

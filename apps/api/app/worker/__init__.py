@@ -1,1 +1,1 @@
-# Nexa AI Worker Package
+# NEXORA Worker Package

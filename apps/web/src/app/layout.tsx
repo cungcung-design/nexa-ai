@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Nexa AI",
-  description: "Build and manage organization AI agents",
+  title: "NEXORA — AI Agent & Automation Platform",
+  description: "NEXORA AI Platform for agents, workflows, and automation.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

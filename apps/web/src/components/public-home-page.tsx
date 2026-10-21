@@ -1,6 +1,13 @@
 ﻿import Link from "next/link";
 
+import { CallToAction } from "@/components/public/call-to-action";
+import { ContactSection } from "@/components/public/contact-section";
+import { FaqSection } from "@/components/public/faq-section";
 import { FeaturesSection } from "@/components/public/features-section";
+import { HomeNav } from "@/components/public/home-nav";
+import { PricingSection } from "@/components/public/pricing-section";
+import { SecuritySection } from "@/components/public/security-section";
+import { SolutionsSection } from "@/components/public/solutions-section";
 
 const DASHBOARD_LINKS: [string, string, boolean][] = [
   ["▣", "Dashboard", true],
@@ -87,7 +94,7 @@ export function PublicHomePage() {
     <div className="nx-homepage">
       <div className="nx-container">
         <header className="nx-navbar">
-          <Link href="/" className="nx-logo" aria-label="Nexa AI home">
+          <Link href="/" className="nx-logo" aria-label="NEXORA home">
             <span className="nx-logo-mark">
               <svg className="nx-outline" viewBox="0 0 24 24" aria-hidden="true">
                 <circle cx="6" cy="5" r="2" />
@@ -97,17 +104,10 @@ export function PublicHomePage() {
                 <path d="m7.5 6.5 9 11m0-11-9 11" />
               </svg>
             </span>
-            <span>Nexa AI</span>
+            <span>NEXORA</span>
           </Link>
 
-          <nav className="nx-nav-links" aria-label="Main navigation">
-            <a href="/dashboard">Product</a>
-            <a href="#features">Features</a>
-            <a href="#solutions">Solutions</a>
-            <a href="/dashboard/billing">Pricing</a>
-            <a href="/dashboard/settings">Security</a>
-            <a href="/register">Contact</a>
-          </nav>
+          <HomeNav />
 
           <div className="nx-nav-actions">
             <Link href="/login" className="nx-button nx-button-login">
@@ -155,7 +155,7 @@ export function PublicHomePage() {
               className="nx-preview"
               id="demo"
               role="img"
-              aria-label="Illustrative Nexa AI dashboard with agent metrics, recent activity, and a usage chart"
+              aria-label="Illustrative NEXORA Dashboard with agent metrics, recent activity, and a usage chart"
             >
               <div className="nx-dashboard" aria-hidden="true">
                 <div className="nx-icon-rail">
@@ -171,7 +171,7 @@ export function PublicHomePage() {
                 </div>
 
                 <aside className="nx-dash-sidebar">
-                  <div className="nx-dash-brand">✣ Nexa AI</div>
+                  <div className="nx-dash-brand">✣ NEXORA</div>
                   {DASHBOARD_LINKS.map(([symbol, label, active]) => (
                     <div
                       key={label}
@@ -278,23 +278,42 @@ export function PublicHomePage() {
             </div>
           </section>
 
-          <div className="nx-shortcuts" id="solutions">
-            {SHORTCUTS.map((shortcut) => (
-              <div key={shortcut.title} className="nx-shortcut">
-                <span className="nx-shortcut-icon">
-                  <svg className="nx-outline" viewBox="0 0 24 24" aria-hidden="true">
-                    {shortcut.icon}
-                  </svg>
-                </span>
-                <div>
-                  <h2>{shortcut.title}</h2>
-                  <p>{shortcut.subtitle}</p>
+          <section className="nx-product" id="product" aria-labelledby="product-title">
+            <div className="nx-section-header">
+              <h2 className="nx-section-title" id="product-title">
+                Product
+              </h2>
+            </div>
+            <div className="nx-shortcuts">
+              {SHORTCUTS.map((shortcut) => (
+                <div key={shortcut.title} className="nx-shortcut">
+                  <span className="nx-shortcut-icon">
+                    <svg className="nx-outline" viewBox="0 0 24 24" aria-hidden="true">
+                      {shortcut.icon}
+                    </svg>
+                  </span>
+                  <div>
+                    <h2>{shortcut.title}</h2>
+                    <p>{shortcut.subtitle}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </section>
 
           <FeaturesSection />
+
+          <SolutionsSection />
+
+          <PricingSection />
+
+          <FaqSection />
+
+          <SecuritySection />
+
+          <ContactSection />
+
+          <CallToAction />
         </main>
       </div>
     </div>

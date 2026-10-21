@@ -15,7 +15,7 @@ type AuthMode = "login" | "register";
  * The sign in and the sign up form.
  *
  * Both forms post to the same origin authentication proxy, which forwards the
- * credentials to the Nexa AI backend and stores the session cookie.
+ * credentials to the NEXORA backend and stores the session cookie.
  */
 export function AuthForm({ mode, next }: { mode: AuthMode; next?: string }) {
   const isRegister = mode === "register";

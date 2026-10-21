@@ -6,6 +6,10 @@
  * The classes are prefixed to stay out of the way of the other screens.
  */
 
+html:has(.nx-homepage) {
+  scroll-behavior: smooth;
+}
+
 .nx-homepage {
   --purple: #6742ff;
   --dark: #101037;
@@ -462,6 +466,38 @@
   color: #74748c;
 }
 
+.nx-section-header {
+  max-width: 1000px;
+  margin: 0 auto 22px;
+  text-align: center;
+}
+
+.nx-section-title {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  color: var(--dark);
+}
+
+#product,
+#features,
+#solutions,
+#pricing,
+#security,
+#contact {
+  scroll-margin-top: 16px;
+}
+
+.nx-product {
+  position: relative;
+  z-index: 2;
+}
+
+#product > .nx-section-header {
+  margin-bottom: 0;
+}
+
 /* Bottom shortcuts */
 .nx-shortcuts {
   display: grid;
@@ -529,6 +565,1047 @@
   stroke-linejoin: round;
 }
 
+/* Pricing */
+.nx-pricing {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  width: min(1000px, 100%);
+  margin: 42px auto 0;
+}
+
+.nx-pricing > .nx-section-header {
+  grid-column: 1 / -1;
+  max-width: none;
+  width: 100%;
+  margin: 0 0 8px;
+}
+
+.nx-plan {
+  display: flex;
+  flex-direction: column;
+  padding: 22px 18px 15px;
+  border: 1px solid #e7e7f7;
+  border-radius: 9px;
+  background: #fff;
+  box-shadow: 0 4px 12px #6351b804;
+}
+
+.nx-plan-name {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.nx-price {
+  margin: 0 0 5px;
+  font-size: 30px;
+  line-height: 1.1;
+  font-weight: 750;
+  letter-spacing: -0.8px;
+}
+
+.nx-price-custom {
+  font-size: 27px;
+}
+
+.nx-plan-description {
+  min-height: 32px;
+  margin: 0 0 12px;
+  color: #9290aa;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.nx-plan-features {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 18px;
+  padding: 0;
+  list-style: none;
+}
+
+.nx-plan-feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  color: #8b86a6;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.nx-check {
+  width: 11px;
+  height: 11px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  fill: none;
+  stroke: #7949ff;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.nx-plan-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 33px;
+  margin-top: auto;
+  padding: 7px 10px;
+  border: 1px solid #8d63ff;
+  border-radius: 5px;
+  background: linear-gradient(110deg, #8c55ff, #713cff);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  transition: filter 0.15s;
+}
+
+.nx-plan-button:hover {
+  filter: brightness(1.06);
+}
+
+.nx-plan-button-outline {
+  border-color: #d8d0ff;
+  background: white;
+  color: #5b448c;
+}
+
+.nx-plan-button-outline:hover {
+  background: #faf8ff;
+}
+
+/* Solutions */
+.nx-solutions {
+  width: min(1000px, 100%);
+  margin: 42px auto 0;
+}
+
+.nx-solutions-banner {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 26px;
+  padding: 26px 28px;
+  background: linear-gradient(115deg, #f4f1ff, #fbfaff 55%, #f2f5ff);
+  border: 1px solid #e9e5fb;
+  border-radius: 12px;
+}
+
+.nx-solutions-title {
+  margin: 0 0 10px;
+  font-size: 27px;
+  font-weight: 800;
+  letter-spacing: -0.9px;
+  color: var(--dark);
+}
+
+.nx-solutions-description {
+  max-width: 380px;
+  margin: 0;
+  color: #74748c;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.nx-solutions-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 11px;
+  margin-top: 19px;
+}
+
+.nx-solutions-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 0 18px;
+  border: 1px solid #c8bcff;
+  border-radius: 7px;
+  background: #ffffffa8;
+  color: #4b329b;
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.nx-solutions-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px #6342ff18;
+}
+
+.nx-solutions-button-primary {
+  background: linear-gradient(135deg, #8054ff, #6038ff);
+  border-color: transparent;
+  color: white;
+  box-shadow: 0 5px 14px #6742ff20;
+}
+
+.nx-solutions-preview {
+  position: relative;
+  padding: 14px 10px;
+}
+
+.nx-solutions-back {
+  position: absolute;
+  inset: 0 0 10px 18px;
+  background: #ffffff63;
+  border: 1px solid #ffffffc2;
+  border-radius: 13px;
+  box-shadow: 0 16px 40px #7958ee22;
+}
+
+.nx-solutions-dashboard {
+  position: relative;
+  display: grid;
+  grid-template-columns: 22px 88px 1fr;
+  height: 235px;
+  overflow: hidden;
+  border: 4px solid #fff;
+  border-radius: 9px;
+  background: #f8f9ff;
+  box-shadow: 0 8px 26px #5e47b51f;
+}
+
+.nx-solutions-rail {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 13px;
+  padding: 8px 0;
+  background: #191746;
+  color: #d7d1ff;
+  font-size: 8px;
+}
+
+.nx-solutions-sidebar {
+  padding: 9px 6px;
+  background: white;
+  border-right: 1px solid #ecebf7;
+}
+
+.nx-solutions-mini-logo {
+  margin-bottom: 12px;
+  color: #6541ee;
+  font-size: 8px;
+  font-weight: bold;
+}
+
+.nx-solutions-mini-link {
+  padding: 4px 4px;
+  margin-bottom: 3px;
+  border-radius: 3px;
+  color: #8887a5;
+  font-size: 6px;
+}
+
+.nx-solutions-mini-link-active {
+  background: #f0ebff;
+  color: #6742ff;
+}
+
+.nx-solutions-main {
+  min-width: 0;
+  padding: 8px;
+}
+
+.nx-solutions-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 7px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #ecebf8;
+}
+
+.nx-solutions-search {
+  width: 46%;
+  height: 13px;
+  border: 1px solid #e9e8f5;
+  border-radius: 3px;
+  background: white;
+}
+
+.nx-solutions-create {
+  padding: 3px 6px;
+  border-radius: 3px;
+  background: #7450ff;
+  color: white;
+  font-size: 5px;
+}
+
+.nx-solutions-heading {
+  margin: 8px 0 7px;
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.nx-solutions-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.nx-solutions-stat {
+  padding: 7px 6px;
+  border: 1px solid #edecf8;
+  border-radius: 5px;
+  background: white;
+}
+
+.nx-solutions-stat small {
+  display: block;
+  color: #9391ac;
+  font-size: 5px;
+}
+
+.nx-solutions-stat strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.nx-solutions-panels {
+  display: grid;
+  grid-template-columns: 0.85fr 1.15fr;
+  gap: 6px;
+  margin-top: 7px;
+}
+
+.nx-solutions-card {
+  min-width: 0;
+  padding: 7px;
+  background: white;
+  border: 1px solid #eeedf8;
+  border-radius: 5px;
+}
+
+.nx-solutions-card h3 {
+  margin: 0 0 8px;
+  font-size: 6px;
+  font-weight: 700;
+}
+
+.nx-solutions-activity {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 9px;
+}
+
+.nx-solutions-activity i {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  background: #ece7ff;
+}
+
+.nx-solutions-activity span {
+  display: block;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: #f0eef9;
+}
+
+.nx-solutions-chart {
+  width: 100%;
+  height: 72px;
+}
+
+.nx-solutions-faq {
+  margin-top: 26px;
+}
+
+.nx-solutions-faq-title {
+  margin: 0 0 14px;
+  font-size: 18px;
+  font-weight: 750;
+  letter-spacing: -0.5px;
+  color: var(--dark);
+}
+
+.nx-solutions-questions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  align-items: start;
+}
+
+.nx-solutions-question {
+  border: 1px solid #ece9f7;
+  border-radius: 6px;
+  background: white;
+}
+
+.nx-solutions-question summary {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 12px;
+  color: #6f6a8a;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.5;
+  cursor: pointer;
+  list-style: none;
+}
+
+.nx-solutions-question summary::-webkit-details-marker {
+  display: none;
+}
+
+.nx-solutions-question-icon {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #f0ebff;
+  color: #7045ee;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.nx-solutions-answer {
+  margin: 0;
+  padding: 0 12px 12px 37px;
+  color: #8a829e;
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+/* Security */
+.nx-security {
+  width: min(1000px, 100%);
+  margin: 42px auto 0;
+}
+
+.nx-security-header {
+  max-width: 640px;
+  margin: 0 auto 22px;
+  text-align: center;
+}
+
+.nx-security-title {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  color: var(--dark);
+}
+
+.nx-security-subtitle {
+  margin: 10px 0 0;
+  font-size: 14px;
+  color: #74748c;
+}
+
+.nx-security-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.nx-security-card {
+  display: flex;
+  flex-direction: column;
+  padding: 20px 18px;
+  border: 1px solid #e7e7f7;
+  border-radius: 9px;
+  background: white;
+  box-shadow: 0 4px 12px #6351b804;
+}
+
+.nx-security-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  margin-bottom: 13px;
+  border-radius: 10px;
+  background: #eae7ff;
+  color: #7650ff;
+}
+
+.nx-security-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.nx-security-card-title {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.nx-security-card-description {
+  margin: 0;
+  color: #8b86a6;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.nx-security-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+/* Contact */
+.nx-contact {
+  width: min(1000px, 100%);
+  margin: 42px auto 0;
+}
+
+.nx-contact-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 24px;
+  padding: 30px 30px 26px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: linear-gradient(120deg, #eef2ff, #f6f2ff 55%, #eaf0ff);
+  border: 1px solid #e4e6f8;
+}
+
+.nx-contact-badge {
+  display: inline-block;
+  padding: 4px 9px;
+  margin-bottom: 13px;
+  border-radius: 20px;
+  background: #e6e2ff;
+  color: #7045ee;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+}
+
+.nx-contact-title {
+  margin: 0 0 9px;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.9px;
+  color: var(--dark);
+}
+
+.nx-contact-description {
+  max-width: 380px;
+  margin: 0;
+  color: #74748c;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.nx-contact-illustration {
+  position: relative;
+  min-height: 200px;
+}
+
+.nx-contact-glass {
+  position: absolute;
+  right: 6%;
+  bottom: 4%;
+  width: 190px;
+  height: 150px;
+  border-radius: 14px;
+  background: #ffffff70;
+  border: 1px solid #ffffffd9;
+  box-shadow: 0 16px 40px #6a55d61f;
+  transform: rotate(-6deg);
+}
+
+.nx-contact-glass-back {
+  right: 20%;
+  bottom: 16%;
+  background: #ffffff4d;
+  transform: rotate(7deg);
+}
+
+.nx-contact-plane {
+  position: absolute;
+  top: 4%;
+  right: 2%;
+  width: 240px;
+  height: 176px;
+  filter: drop-shadow(0 12px 22px #6a55d626);
+}
+
+.nx-contact-tile {
+  position: absolute;
+  left: 4%;
+  top: 18%;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: white;
+  color: #7045ee;
+  box-shadow: 0 10px 24px #6a55d626;
+}
+
+.nx-contact-tile svg {
+  width: 24px;
+  height: 24px;
+}
+
+.nx-contact-tile-small {
+  left: 16%;
+  top: 52%;
+  width: 36px;
+  height: 36px;
+  color: #3d8bff;
+}
+
+.nx-contact-tile-small svg {
+  width: 19px;
+  height: 19px;
+}
+
+.nx-contact-future {
+  position: absolute;
+  left: 2%;
+  bottom: 0;
+  color: #6a6290;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.nx-contact-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.nx-contact-card {
+  padding: 22px 20px;
+  border: 1px solid #e7e7f7;
+  border-radius: 9px;
+  background: white;
+  box-shadow: 0 4px 12px #6351b804;
+}
+
+.nx-contact-column {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+
+.nx-contact-card-title {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+.nx-contact-card-description {
+  margin: 0 0 15px;
+  color: #9290aa;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.nx-contact-field {
+  margin-bottom: 13px;
+}
+
+.nx-contact-field label {
+  display: block;
+  margin-bottom: 6px;
+  color: #57536f;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.nx-contact-required {
+  color: #d64545;
+}
+
+.nx-contact-field input,
+.nx-contact-field select,
+.nx-contact-field textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e6e4f2;
+  border-radius: 7px;
+  background: #fcfcff;
+  color: #2c2a4d;
+  font-family: inherit;
+  font-size: 11px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.nx-contact-field textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.nx-contact-field input:focus,
+.nx-contact-field select:focus,
+.nx-contact-field textarea:focus {
+  border-color: #a892ff;
+  box-shadow: 0 0 0 3px #7a52ff1a;
+}
+
+.nx-contact-field input::placeholder,
+.nx-contact-field textarea::placeholder {
+  color: #b3b0c6;
+}
+
+.nx-contact-select {
+  position: relative;
+}
+
+.nx-contact-select::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  width: 5px;
+  height: 5px;
+  border-right: 1.5px solid #8d89a8;
+  border-bottom: 1.5px solid #8d89a8;
+  transform: translateY(-70%) rotate(45deg);
+  pointer-events: none;
+}
+
+.nx-contact-select select {
+  appearance: none;
+  padding-right: 30px;
+}
+
+.nx-contact-send {
+  width: 100%;
+  min-height: 40px;
+  margin-top: 4px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: linear-gradient(110deg, #8c55ff, #713cff);
+  color: white;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+.nx-contact-send:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.nx-contact-send:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.nx-contact-status {
+  min-height: 15px;
+  margin: 9px 0 0;
+  color: #39be92;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.nx-contact-status[role="alert"] {
+  color: #d64545;
+}
+
+.nx-contact-privacy {
+  margin: 6px 0 0;
+  color: #a09cb8;
+  font-size: 9px;
+}
+
+.nx-contact-privacy a {
+  color: #7045ee;
+  text-decoration: none;
+}
+
+.nx-contact-privacy a:hover {
+  text-decoration: underline;
+}
+
+.nx-contact-list {
+  display: grid;
+  gap: 14px;
+}
+
+.nx-contact-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+}
+
+.nx-contact-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  background: #eae7ff;
+  color: #7650ff;
+}
+
+.nx-contact-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.nx-contact-item h3 {
+  margin: 0 0 2px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.nx-contact-value {
+  display: block;
+  color: #5a5290;
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+a.nx-contact-value:hover {
+  color: #7045ee;
+  text-decoration: underline;
+}
+
+.nx-contact-item p {
+  margin: 2px 0 0;
+  color: #a09cb8;
+  font-size: 9px;
+}
+
+.nx-contact-socials {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.nx-contact-social {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: #f2f0ff;
+  color: #6742ff;
+  text-decoration: none;
+  transition: transform 0.15s, background 0.15s;
+}
+
+.nx-contact-social:hover {
+  transform: translateY(-2px);
+  background: #e6e2ff;
+}
+
+.nx-contact-social svg {
+  width: 17px;
+  height: 17px;
+}
+
+/* Questions */
+.nx-faq {
+  width: min(1000px, 100%);
+  margin: 42px auto 0;
+  padding: 28px 30px 22px;
+  background: #fff;
+}
+
+.nx-faq-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 20px;
+  align-items: start;
+}
+
+.nx-faq-title {
+  margin: 0;
+  align-self: center;
+  font-size: 21px;
+  font-weight: 750;
+  line-height: 1.3;
+  letter-spacing: -0.6px;
+}
+
+.nx-faq-item {
+  min-width: 0;
+  border: 1px solid #ece9f7;
+  border-radius: 5px;
+  background: #fff;
+}
+
+.nx-faq-question {
+  position: relative;
+  padding: 10px 28px 10px 11px;
+  color: #8a829e;
+  font-size: 11px;
+  line-height: 1.5;
+  cursor: pointer;
+  list-style: none;
+}
+
+.nx-faq-question::-webkit-details-marker {
+  display: none;
+}
+
+.nx-faq-question::after {
+  content: "";
+  position: absolute;
+  top: 13px;
+  right: 12px;
+  width: 5px;
+  height: 5px;
+  border-right: 1.5px solid #8858ff;
+  border-bottom: 1.5px solid #8858ff;
+  transform: rotate(45deg);
+}
+
+.nx-faq-item[open] .nx-faq-question::after {
+  top: 16px;
+  transform: rotate(225deg);
+}
+
+.nx-faq-answer {
+  margin: 0;
+  padding: 0 11px 12px;
+  color: #8a829e;
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+/* Call to action and footer */
+.nx-cta {
+  width: min(1000px, 100%);
+  margin: 42px auto 0;
+  padding: 25px 23px 17px;
+  background: linear-gradient(110deg, #7547ff, #623aff 60%, #8451ff);
+  color: white;
+  text-align: center;
+}
+
+.nx-cta-title {
+  margin: 0 0 7px;
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.4px;
+}
+
+.nx-cta-description {
+  margin: 0;
+  color: #ddd2ff;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.nx-cta-footer {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 18px;
+  margin-top: 17px;
+}
+
+.nx-cta-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  justify-self: start;
+  color: white;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.nx-cta-logo-mark {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+  background: white;
+  color: #7748ff;
+}
+
+.nx-cta-logo-mark svg {
+  width: 18px;
+  height: 18px;
+}
+
+.nx-cta-start {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 29px;
+  padding: 0 15px;
+  border: 1px solid #ffffffd9;
+  border-radius: 6px;
+  background: white;
+  color: #7040f3;
+  font-size: 10px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.nx-cta-start:hover {
+  background: #f3efff;
+}
+
+.nx-cta-links {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.nx-cta-link {
+  display: grid;
+  place-items: center;
+  width: 21px;
+  height: 21px;
+  border-radius: 50%;
+  background: white;
+  color: #7748ff;
+  text-decoration: none;
+}
+
+.nx-cta-link svg {
+  width: 12px;
+  height: 12px;
+}
+
+.nx-homepage a:focus-visible,
+.nx-homepage summary:focus-visible {
+  outline: 2px solid #bfa7ff;
+  outline-offset: 4px;
+}
+
+.nx-plan-button:focus-visible {
+  outline: 2px solid #7950ff;
+  outline-offset: 3px;
+}
+
 @media (min-width: 1500px) {
   .nx-homepage {
     display: flex;
@@ -564,6 +1641,18 @@
   .nx-shortcut {
     gap: 8px;
   }
+
+  .nx-solutions-banner {
+    gap: 16px;
+  }
+
+  .nx-solutions-questions {
+    gap: 8px;
+  }
+
+  .nx-security-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 700px) {
@@ -597,11 +1686,12 @@
   }
 
   .nx-hero {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 5px;
   }
 
   .nx-hero-content {
+    min-width: 0;
     padding: 40px 0 25px;
   }
 
@@ -627,6 +1717,81 @@
   .nx-shortcuts {
     grid-template-columns: repeat(2, 1fr);
     gap: 24px 14px;
+  }
+
+  .nx-pricing {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .nx-solutions-banner {
+    grid-template-columns: 1fr;
+    padding: 22px 20px;
+  }
+
+  .nx-solutions-preview {
+    max-width: 460px;
+  }
+
+  .nx-solutions-questions {
+    grid-template-columns: 1fr;
+  }
+
+  .nx-security-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .nx-contact-hero {
+    grid-template-columns: 1fr;
+    padding: 24px 20px;
+  }
+
+  .nx-contact-illustration {
+    min-height: 170px;
+  }
+
+  .nx-contact-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .nx-faq {
+    padding: 24px 20px;
+  }
+
+  .nx-faq-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .nx-faq-title {
+    margin-bottom: 6px;
+  }
+
+  .nx-cta {
+    padding: 25px 20px 20px;
+  }
+
+  .nx-cta-footer {
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  .nx-cta-start {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    justify-self: center;
+  }
+
+  .nx-cta-logo {
+    grid-column: 1;
+  }
+
+  .nx-cta-links {
+    grid-column: 2;
+  }
+}
+
+@media (max-width: 360px) {
+  .nx-pricing {
+    grid-template-columns: 1fr;
   }
 }
 

@@ -49,7 +49,7 @@ def _render_password_reset_body(
     expires_in_minutes: int,
 ) -> str:
     return (
-        "We received a request to reset the password of your Nexa AI account."
+        "We received a request to reset the password of your NEXORA account."
         "\n\n"
         "Open the link below to choose a new password. The link expires in "
         f"{expires_in_minutes} minutes and can only be used once.\n\n"
@@ -65,7 +65,7 @@ def _render_email_verification_body(
     expires_in_minutes: int,
 ) -> str:
     return (
-        "Welcome to Nexa AI.\n\n"
+        "Welcome to NEXORA.\n\n"
         "Confirm this address to activate your account and start building your "
         "workspace.\n\n"
         f"{verification_link}\n\n"
@@ -83,7 +83,7 @@ def send_email_verification_email(
     """Send the address confirmation email to ``to_email``."""
     message = _build_message(
         to_email=to_email,
-        subject="Verify your Nexa AI email address",
+        subject="Verify your NEXORA email address",
         body=_render_email_verification_body(
             verification_link=verification_link,
             expires_in_minutes=expires_in_minutes,
@@ -130,7 +130,7 @@ def send_password_reset_email(
     """
     message = _build_message(
         to_email=to_email,
-        subject="Reset your Nexa AI password",
+        subject="Reset your NEXORA password",
         body=_render_password_reset_body(
             reset_link=reset_link,
             expires_in_minutes=expires_in_minutes,
@@ -151,6 +151,74 @@ def send_password_reset_email(
         if settings.smtp_username:
             server.login(settings.smtp_username, settings.smtp_password)
         server.send_message(message)
+    except (smtplib.SMTPException, OSError) as error:
+        raise EmailDeliveryError(
+            "The mail server did not accept the message"
+        ) from error
+    finally:
+        if server is not None:
+            try:
+                server.quit()
+            except (smtplib.SMTPException, OSError):
+                pass
+
+
+def _render_contact_body(
+    *,
+    name: str,
+    email: str,
+    subject: str,
+    message: str,
+) -> str:
+    return (
+        "A visitor sent a message through the contact form of NEXORA."
+        "\n\n"
+        f"Name: {name}\n"
+        f"Email: {email}\n"
+        f"Topic: {subject}\n\n"
+        f"{message}\n\n"
+        "Answer the sender directly at the address above."
+    )
+
+
+def send_contact_message_email(
+    *,
+    to_email: str,
+    name: str,
+    email: str,
+    subject: str,
+    message: str,
+) -> None:
+    """Forward a message of the contact form to the inbox of the team.
+
+    The function raises :class:`EmailDeliveryError` when the mail server
+    rejects the message, the caller keeps the stored request in that case.
+    """
+    mail = _build_message(
+        to_email=to_email,
+        subject=f"NEXORA contact: {subject}",
+        body=_render_contact_body(
+            name=name,
+            email=email,
+            subject=subject,
+            message=message,
+        ),
+    )
+
+    server = None
+    try:
+        server = smtplib.SMTP(
+            settings.smtp_host,
+            settings.smtp_port,
+            timeout=settings.smtp_timeout_seconds,
+        )
+        server.ehlo()
+        if settings.smtp_use_starttls:
+            server.starttls()
+            server.ehlo()
+        if settings.smtp_username:
+            server.login(settings.smtp_username, settings.smtp_password)
+        server.send_message(mail)
     except (smtplib.SMTPException, OSError) as error:
         raise EmailDeliveryError(
             "The mail server did not accept the message"

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { connection } from "next/server";
@@ -11,6 +12,10 @@ import {
   type User,
 } from "@/lib/api";
 import { Suspense } from "react";
+
+export const metadata: Metadata = {
+  title: "NEXORA Dashboard",
+};
 
 export const instant = false;
 
