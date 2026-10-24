@@ -61,7 +61,7 @@ export async function forwardToAuthService(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
       cache: "no-store",
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(20000),
     });
     const data: unknown = await upstream.json().catch(() => ({}));
     if (upstream.ok) {

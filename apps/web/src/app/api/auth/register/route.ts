@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
         ...(fullName ? { full_name: fullName } : {}),
       }),
       cache: "no-store",
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(20000),
     });
     if (!registered.ok) {
       const detail = await registered
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
       cache: "no-store",
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(20000),
     });
     if (!login.ok)
       return NextResponse.json(
