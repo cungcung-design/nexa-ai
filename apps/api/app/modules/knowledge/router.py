@@ -19,6 +19,7 @@ from app.modules.knowledge.schemas import (
     SearchResult,
 )
 from app.core.config import settings
+from app.core.uploads import safe_upload_filename
 from app.modules.security.audit import record_audit_event
 from app.worker.tasks import process_document
 
@@ -108,7 +109,6 @@ async def upload_document(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    print("=== UPLOAD_DOCUMENT CALLED ===")
     membership = require_membership(db, current_user.id, organization_id)
     require_upload_role(membership)
 
@@ -121,7 +121,7 @@ async def upload_document(
             detail="File exceeds 5 MB limit",
         )
 
-    filename = (file.filename or "document")[:255]
+    filename = safe_upload_filename(file.filename)
     is_pdf = raw.startswith(b"%PDF-")
     is_txt = filename.lower().endswith((".txt", ".md"))
     if not is_pdf and not is_txt:
@@ -163,7 +163,6 @@ async def upload_document(
     db.add(doc)
     db.commit()
     db.refresh(doc)
-    print(f"=== DOC CREATED: {doc.id}, status={doc.status} ===")
 
     record_audit_event(
         db,
@@ -187,9 +186,10 @@ async def upload_document(
 
     try:
         process_document.delay(str(doc.id), str(organization_id))
-        print("=== TASK QUEUED ===")
-    except Exception as exc:
-        print(f"=== TASK QUEUE FAILED: {exc} ===")
+    except Exception:
+        doc.status = "FAILED"
+        doc.error_message = "The document could not be queued."
+        db.commit()
 
     return doc
 

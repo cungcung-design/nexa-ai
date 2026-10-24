@@ -1,8 +1,8 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -27,6 +27,21 @@ router = APIRouter(
 class CreateKeyRequest(BaseModel):
     name: str = Field(min_length=1, max_length=120)
     scopes: list[str] = Field(min_length=1)
+    expires_at: datetime | None = None
+
+    @field_validator("expires_at")
+    @classmethod
+    def expiration_is_supported(cls, value: datetime | None) -> datetime | None:
+        if value is None:
+            return None
+        if value.tzinfo is None:
+            raise ValueError("Expiration must include a timezone")
+        now = datetime.now(timezone.utc)
+        if value <= now:
+            raise ValueError("Expiration must be in the future")
+        if value > now + timedelta(days=366):
+            raise ValueError("Expiration cannot be more than 366 days away")
+        return value
 
 
 class KeyResponse(BaseModel):
@@ -38,11 +53,19 @@ class KeyResponse(BaseModel):
     scopes: list[str]
     is_active: bool
     created_at: datetime
+    expires_at: datetime | None = None
     revoked_at: datetime | None
 
 
 class CreatedKeyResponse(KeyResponse):
     api_key: str
+
+
+def _public_key(record: OrganizationAPIKey, plaintext: str | None = None):
+    payload = KeyResponse.model_validate(record).model_dump()
+    if plaintext is None:
+        return KeyResponse.model_validate(payload)
+    return CreatedKeyResponse(api_key=plaintext, **payload)
 
 
 @router.post(
@@ -59,24 +82,22 @@ def create_key(
         require_permission(Permission.MEMBER_MANAGE)
     ),
 ):
-    # Validate scopes
-    invalid_scopes = set(payload.scopes) - ALLOWED_SCOPES
+    invalid_scopes = sorted(set(payload.scopes) - ALLOWED_SCOPES)
     if invalid_scopes:
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid scopes: {invalid_scopes}",
+            detail=f"Invalid scopes: {', '.join(invalid_scopes)}",
         )
 
-    # Generate the API key
     plaintext_key, prefix, key_hash = generate_api_key()
 
-    # Create the API key record
     api_key = OrganizationAPIKey(
         organization_id=organization_id,
         name=payload.name,
         key_prefix=prefix,
         key_hash=key_hash,
         scopes=list(payload.scopes),
+        expires_at=payload.expires_at,
     )
     db.add(api_key)
     db.commit()
@@ -105,11 +126,7 @@ def create_key(
         ),
     )
 
-    # Return the created key with the plaintext (only shown once)
-    return CreatedKeyResponse(
-        api_key=plaintext_key,
-        **api_key.__dict__,
-    )
+    return _public_key(api_key, plaintext_key)
 
 
 @router.get(
@@ -125,10 +142,9 @@ def list_keys(
     ),
 ):
     keys = db.scalars(
-        select(OrganizationAPIKey).where(
-            OrganizationAPIKey.organization_id == organization_id,
-            OrganizationAPIKey.is_active.is_(True),
-        )
+        select(OrganizationAPIKey)
+        .where(OrganizationAPIKey.organization_id == organization_id)
+        .order_by(OrganizationAPIKey.created_at.desc())
     ).all()
     return keys
 
@@ -221,7 +237,14 @@ def rotate_key(
             detail="Active API key not found",
         )
 
-    # Generate new key
+    if old_key.expires_at is not None and old_key.expires_at <= datetime.now(
+        timezone.utc
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Expired keys cannot be rotated",
+        )
+
     plaintext_key, prefix, key_hash = generate_api_key()
 
     # Create new key record
@@ -230,7 +253,8 @@ def rotate_key(
         name=f"{old_key.name} (rotated)",
         key_prefix=prefix,
         key_hash=key_hash,
-        scopes=old_key.scopes.copy(),  # Copy the scopes
+        scopes=list(old_key.scopes or []),
+        expires_at=old_key.expires_at,
     )
     db.add(new_key)
 
@@ -264,8 +288,4 @@ def rotate_key(
         summary=f"{current_user.email} rotated the API key “{old_key.name}”.",
     )
 
-    # Return the new key with the plaintext (only shown once)
-    return CreatedKeyResponse(
-        api_key=plaintext_key,
-        **new_key.__dict__,
-    )
+    return _public_key(new_key, plaintext_key)

@@ -24,6 +24,8 @@ import {
   formatTimestamp,
 } from "@/components/audit-logs/shared";
 
+export const instant = false;
+
 export default async function AuditOverviewPage({
   params,
 }: {

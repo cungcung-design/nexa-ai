@@ -2,8 +2,14 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { Bot, LoaderCircle, Send, Trash2, UserRound } from "lucide-react";
+import {
+  continueConversation,
+  ConversationRequestError,
+  loadMessages,
+  type StoredMessage,
+} from "@/lib/playground-session";
 
-type Message = { role: "user" | "assistant"; content: string };
+type Message = { id: string; role: "user" | "assistant"; content: string };
 
 export function AgentPlayground({
   orgId,
@@ -14,52 +20,96 @@ export function AgentPlayground({
   agentId: string;
   agentName: string;
 }) {
+  const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const end = useRef<HTMLDivElement>(null);
+  const sending = useRef(false);
 
   useEffect(() => {
+    let cancelled = false;
+    setConversationId(null);
     setMessages([]);
     setDraft("");
     setError("");
+    fetch(`/api/workspace/${encodeURIComponent(orgId)}/conversations`, {
+      cache: "no-store",
+    })
+      .then(async (response) => {
+        const data: unknown = await response.json().catch(() => []);
+        if (!response.ok || !Array.isArray(data) || cancelled) return;
+        const match = (data as { id: string; agent_id: string }[]).find(
+          (item) => item.agent_id === agentId
+        );
+        if (!match || cancelled) return;
+        const history = await loadMessages(orgId, match.id);
+        if (cancelled) return;
+        setConversationId(match.id);
+        setMessages(
+          history
+            .filter((item) => item.role === "user" || item.role === "assistant")
+            .map((item) => ({
+              id: item.id,
+              role: item.role as Message["role"],
+              content: item.content,
+            }))
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setError("Could not load the conversation");
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [orgId, agentId]);
 
   useEffect(() => {
     end.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
+  function applyHistory(history: StoredMessage[], nextConversationId: string) {
+    setConversationId(nextConversationId);
+    setMessages(
+      history
+        .filter((item) => item.role === "user" || item.role === "assistant")
+        .map((item) => ({
+          id: item.id,
+          role: item.role as Message["role"],
+          content: item.content,
+        }))
+    );
+  }
+
   async function send(event: FormEvent) {
     event.preventDefault();
     const text = draft.trim();
-    if (!text || loading) return;
+    if (!text || sending.current) return;
+    sending.current = true;
     setDraft("");
     setError("");
-    setMessages((p) => [...p, { role: "user", content: text }]);
     setLoading(true);
     try {
-      const response = await fetch(
-        `/api/workspace/${encodeURIComponent(orgId)}/agents/${encodeURIComponent(agentId)}/chat`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: text }),
-        }
+      const result = await continueConversation({
+        orgId,
+        agentId,
+        conversationId,
+        message: text,
+      });
+      applyHistory(result.messages, result.conversationId);
+    } catch (caught) {
+      if (caught instanceof ConversationRequestError && caught.conversationId) {
+        setConversationId(caught.conversationId);
+      }
+      setDraft(text);
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "The model provider could not respond"
       );
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Chat failed");
-      const answer =
-        typeof data.answer === "string"
-          ? data.answer
-          : typeof data.response === "string"
-            ? data.response
-            : null;
-      if (!answer) throw new Error("Unexpected agent response");
-      setMessages((p) => [...p, { role: "assistant", content: answer }]);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Request failed");
     } finally {
+      sending.current = false;
       setLoading(false);
     }
   }
@@ -74,18 +124,21 @@ export function AgentPlayground({
           <div>
             <h2 className="font-semibold">{agentName}</h2>
             <p className="text-xs text-zinc-500">
-              Live agent test · single-turn API
+              Published version · conversation is saved
             </p>
           </div>
         </div>
         <button
           onClick={() => {
+            if (loading) return;
+            setConversationId(null);
             setMessages([]);
             setError("");
           }}
-          className="rounded-lg p-2 text-zinc-400 hover:bg-white/5"
-          aria-label="Clear local chat"
-          title="Clear local chat"
+          disabled={loading}
+          className="rounded-lg p-2 text-zinc-400 hover:bg-white/5 disabled:opacity-40"
+          aria-label="Reset chat"
+          title="Start a new conversation"
         >
           <Trash2 className="size-4" />
         </button>
@@ -99,14 +152,14 @@ export function AgentPlayground({
             <Bot className="mx-auto size-10 text-violet-400" />
             <h3 className="mt-4 text-xl font-bold">Test your agent</h3>
             <p className="mt-2 text-sm text-zinc-400">
-              Send a message to the published version. This playground does not
-              persist conversations; use Conversations for threaded history.
+              Send a message to the published version. The conversation is
+              saved and appears in Conversations.
             </p>
           </div>
         )}
-        {messages.map((m, i) => (
+        {messages.map((m) => (
           <div
-            key={i}
+            key={m.id}
             className={`flex gap-2 ${m.role === "user" ? "justify-end" : "justify-start"}`}
           >
             {m.role === "assistant" && (
@@ -156,6 +209,7 @@ export function AgentPlayground({
               e.currentTarget.form?.requestSubmit();
             }
           }}
+          disabled={loading}
           maxLength={4000}
           rows={2}
           placeholder="Ask your agent something..."

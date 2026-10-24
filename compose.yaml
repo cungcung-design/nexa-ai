@@ -1,15 +1,22 @@
 name: nexa-ai
 
+x-logging: &json-logs
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 services:
   postgres:
     image: pgvector/pgvector:pg17
     container_name: nexa-postgres
     restart: unless-stopped
+    logging: *json-logs
 
     environment:
-      POSTGRES_USER: nexa
-      POSTGRES_PASSWORD: nexa_local_dev
-      POSTGRES_DB: nexa_ai
+      POSTGRES_USER: ${POSTGRES_USER:-nexa}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nexa_local_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-nexa_ai}
 
     ports:
       - "127.0.0.1:5435:5432"
@@ -32,6 +39,7 @@ services:
     image: redis:7-alpine
     container_name: nexa-redis
     restart: unless-stopped
+    logging: *json-logs
     command:
       - redis-server
       - --appendonly
@@ -42,6 +50,8 @@ services:
       - noeviction
     volumes:
       - redis_data:/data
+    ports:
+      - "127.0.0.1:6380:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -51,19 +61,42 @@ services:
     networks:
       - internal
 
+  migrate:
+    image: ${NEXA_API_IMAGE:-nexa-api:compose}
+    build:
+      context: ./apps/api
+    container_name: nexa-migrate
+    restart: "no"
+    logging: *json-logs
+    command:
+      - python
+      - scripts/migrate.py
+    env_file:
+      - ./apps/api/.env
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-nexa}:${POSTGRES_PASSWORD:-nexa_local_dev}@postgres:5432/${POSTGRES_DB:-nexa_ai}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
+
   api:
+    image: ${NEXA_API_IMAGE:-nexa-api:compose}
     build:
       context: ./apps/api
     container_name: nexa-api
     restart: unless-stopped
+    logging: *json-logs
 
     env_file:
       - ./apps/api/.env
 
     environment:
-      DATABASE_URL: postgresql+psycopg://nexa:nexa_local_dev@postgres:5432/nexa_ai
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-nexa}:${POSTGRES_PASSWORD:-nexa_local_dev}@postgres:5432/${POSTGRES_DB:-nexa_ai}
       REDIS_URL: redis://redis:6379/0
       DOCUMENT_STORAGE_PATH: /app/storage/documents
+      AUDIT_EXPORT_STORAGE_PATH: /app/storage/audit-exports
       NEXA_API_URL: http://api:8000
 
     ports:
@@ -72,7 +105,20 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready', timeout=3)
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
     depends_on:
+      migrate:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
@@ -80,16 +126,19 @@ services:
 
     volumes:
       - document_storage:/app/storage/documents
+      - audit_export_storage:/app/storage/audit-exports
 
     networks:
       - internal
 
   worker:
+    image: ${NEXA_WORKER_IMAGE:-nexa-worker:compose}
     build:
       context: ./apps/api
       dockerfile: Dockerfile.worker
     container_name: nexa-worker
     restart: unless-stopped
+    logging: *json-logs
     command:
       - celery
       - -A
@@ -100,12 +149,24 @@ services:
     env_file:
       - ./apps/api/.env
     environment:
-      DATABASE_URL: postgresql+psycopg://nexa:nexa_local_dev@postgres:5432/nexa_ai
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-nexa}:${POSTGRES_PASSWORD:-nexa_local_dev}@postgres:5432/${POSTGRES_DB:-nexa_ai}
       REDIS_URL: redis://redis:6379/0
       DOCUMENT_STORAGE_PATH: /app/storage/documents
+      AUDIT_EXPORT_STORAGE_PATH: /app/storage/audit-exports
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - celery -A app.worker.celery_app inspect ping --timeout 10 | grep -q pong
+      interval: 30s
+      timeout: 20s
+      retries: 5
+      start_period: 40s
     volumes:
       - document_storage:/app/storage/documents
+      - audit_export_storage:/app/storage/audit-exports
     depends_on:
+      migrate:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
       postgres:
@@ -115,22 +176,40 @@ services:
       - internal
 
   web:
+    image: ${NEXA_WEB_IMAGE:-nexa-web:compose}
     build:
       context: ./apps/web
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
     container_name: nexa-web
     restart: unless-stopped
+    logging: *json-logs
 
     env_file:
       - ./apps/web/.env.local
 
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8000
+      NODE_ENV: production
+      NEXA_API_URL: http://api:8000
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
 
     ports:
       - "127.0.0.1:3000:3000"
 
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/').then((r) => process.exit(r.status < 500 ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 20s
+
     depends_on:
-      - api
+      api:
+        condition: service_healthy
 
     networks:
       - internal
@@ -139,6 +218,7 @@ volumes:
   nexa_postgres_data:
   redis_data:
   document_storage:
+  audit_export_storage:
 
 networks:
   internal:

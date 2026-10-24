@@ -1,5 +1,7 @@
 import { BillingNav } from "@/components/billing/shared";
 
+export const instant = false;
+
 export default async function BillingLayout({
   children,
   params,

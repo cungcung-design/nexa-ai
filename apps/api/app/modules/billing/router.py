@@ -68,6 +68,7 @@ from app.modules.billing.stripe_service import (
     normalize_invoice,
     normalize_payment_method,
     provider_configured,
+    schedule_provider_cancellation,
     set_default_payment_method,
 )
 from app.modules.billing.usage import (
@@ -516,6 +517,14 @@ def cancel_subscription(
         "status": subscription.status,
         "cancel_at_period_end": subscription.cancel_at_period_end,
     }
+    if subscription.stripe_subscription_id:
+        try:
+            schedule_provider_cancellation(
+                subscription.stripe_subscription_id,
+                bool(request.cancel_at_period_end),
+            )
+        except (BillingProviderUnavailable, BillingProviderError) as exc:
+            raise _provider_failure(exc)
     subscription.cancel_at_period_end = bool(request.cancel_at_period_end)
     subscription.canceled_at = (
         datetime.now(timezone.utc) if request.cancel_at_period_end else None
@@ -569,6 +578,14 @@ def resume_subscription(
             status_code=status.HTTP_409_CONFLICT,
             detail="This subscription is not scheduled for cancellation",
         )
+    if subscription.stripe_subscription_id:
+        try:
+            schedule_provider_cancellation(
+                subscription.stripe_subscription_id,
+                False,
+            )
+        except (BillingProviderUnavailable, BillingProviderError) as exc:
+            raise _provider_failure(exc)
     subscription.cancel_at_period_end = False
     subscription.canceled_at = None
     db.commit()

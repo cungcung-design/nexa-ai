@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
   FieldLabel,
+  formatTimestamp,
   primaryButtonClass,
   inputClass,
   selectClass,
@@ -163,7 +164,7 @@ export function InviteForm({
           <p className="m-[2px_0_0] text-[12px] text-[#4a7c4f]">
             This workspace has no outbound mail provider, so share the link
             below with the recipient. It expires on{" "}
-            {new Date(created.expires_at).toLocaleDateString()}.
+            {formatTimestamp(created.expires_at)}.
           </p>
           {inviteLink ? (
             <div className="mt-2 flex flex-wrap items-center gap-2">

@@ -30,7 +30,11 @@ class Settings(BaseSettings):
     smtp_password: str = ""
     smtp_from_email: str = ""
     smtp_from_name: str = "NEXORA"
+    #: STARTTLS upgrades a plain connection, usually on port 587.
     smtp_use_starttls: bool = True
+    #: Implicit TLS opens SMTP_SSL, usually on port 465. It cannot be combined
+    #: with STARTTLS.
+    smtp_use_ssl: bool = False
     smtp_timeout_seconds: int = 10
 
     #: Inbox that receives the messages of the contact form. The message is

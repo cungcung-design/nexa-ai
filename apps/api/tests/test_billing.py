@@ -11,7 +11,13 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
-from app.db.models import Invoice, OrganizationSubscription, PaymentMethodRecord
+from app.db.models import (
+    Invoice,
+    MonthlyUsage,
+    OrganizationSubscription,
+    PaymentMethodRecord,
+)
+from app.modules.billing.usage import current_period
 from app.modules.security.audit_models import SecurityAuditEvent
 
 PASSWORD = "Billing-Module-Secure-Pass"
@@ -652,3 +658,79 @@ def test_billing_audit_events_record_the_change(client: TestClient, workspace, d
     assert event.changes["before"]["company_name"] == "Before"
     assert event.changes["after"]["company_name"] == "After"
     assert event.actor_user_id is not None
+
+
+def test_request_quota_is_enforced_before_a_model_call(
+    client: TestClient, workspace, db_session
+):
+    org_id = workspace["org_id"]
+    db_session.add(
+        MonthlyUsage(
+            organization_id=uuid.UUID(org_id),
+            period=current_period(),
+            request_count=100,
+            prompt_tokens=0,
+            completion_tokens=0,
+        )
+    )
+    db_session.commit()
+
+    response = client.post(
+        f"/api/v1/organizations/{org_id}/agents/{uuid.uuid4()}/chat",
+        headers=_auth(workspace["tokens"]["owner"]),
+        json={"message": "This request is over the free quota."},
+    )
+    assert response.status_code == 429, response.text
+    assert "quota" in response.json()["detail"].lower()
+
+
+def test_agent_quota_is_enforced(client: TestClient, workspace):
+    org_id = workspace["org_id"]
+    token = workspace["tokens"]["owner"]
+    for index in range(2):
+        created = client.post(
+            f"/api/v1/organizations/{org_id}/agents",
+            headers=_auth(token),
+            json={"name": f"Quota Agent {index}"},
+        )
+        assert created.status_code == 201, created.text
+
+    overflow = client.post(
+        f"/api/v1/organizations/{org_id}/agents",
+        headers=_auth(token),
+        json={"name": "Quota Agent overflow"},
+    )
+    assert overflow.status_code == 409, overflow.text
+    assert "Agent quota" in overflow.json()["detail"]
+
+
+def test_provider_cancellation_is_not_faked_when_stripe_is_disconnected(
+    client: TestClient, workspace, db_session
+):
+    org_id = workspace["org_id"]
+    db_session.add(
+        OrganizationSubscription(
+            organization_id=uuid.UUID(org_id),
+            plan="PRO",
+            status="ACTIVE",
+            interval="monthly",
+            price_amount=4900,
+            currency="usd",
+            stripe_subscription_id="sub_disconnected",
+        )
+    )
+    db_session.commit()
+
+    response = client.post(
+        f"/api/v1/organizations/{org_id}/billing/subscription/cancel",
+        headers=_auth(workspace["tokens"]["owner"]),
+        json={"cancel_at_period_end": True},
+    )
+    assert response.status_code == 503, response.text
+
+    current = client.get(
+        f"/api/v1/organizations/{org_id}/billing/subscription",
+        headers=_auth(workspace["tokens"]["owner"]),
+    )
+    assert current.status_code == 200, current.text
+    assert current.json()["cancel_at_period_end"] is False

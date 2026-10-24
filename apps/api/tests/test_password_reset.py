@@ -52,6 +52,23 @@ def _reset_token(response) -> str:
     return payload["dev_reset_link"].split("token=")[-1]
 
 
+def test_the_reset_link_uses_the_configured_frontend_url(
+    client: TestClient, monkeypatch
+):
+    monkeypatch.setattr(settings, "frontend_url", "https://app.mailprovider.net")
+    email = _unique_email("reset-frontend")
+    _register(client, email)
+
+    response = _request_reset(client, email)
+
+    assert response.status_code == 200, response.text
+    link = response.json()["dev_reset_link"]
+    assert link.startswith(
+        "https://app.mailprovider.net/password-recovery?token="
+    )
+    assert response.json()["message"]
+
+
 def test_the_request_never_reveals_whether_an_account_exists(client: TestClient):
     known = _unique_email("reset-known")
     _register(client, known)

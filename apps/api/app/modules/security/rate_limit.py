@@ -2,7 +2,7 @@ import hashlib
 import os
 
 import redis
-from fastapi import HTTPException, status
+from fastapi import HTTPException, Request, status
 
 
 REDIS_URL = os.getenv(
@@ -28,6 +28,55 @@ local ttl = redis.call("TTL", KEYS[1])
 
 return {current, ttl}
 """
+
+
+def trust_proxy() -> bool:
+    return os.getenv("TRUST_PROXY", "").strip().lower() in {"1", "true", "yes"}
+
+
+def client_address(request: Request) -> str:
+    """Return the caller address used for a rate-limit bucket.
+
+    Forwarded headers are read only when the process is behind the private
+    proxy. A published API port must leave TRUST_PROXY unset.
+    """
+    if trust_proxy():
+        forwarded = request.headers.get("x-forwarded-for", "")
+        first = forwarded.split(",", 1)[0].strip()
+        if first:
+            return first
+    if request.client is not None and request.client.host:
+        return request.client.host
+    return "unknown"
+
+
+def enforce_login_limits(email: str, host: str) -> None:
+    enforce_rate_limit(
+        identity=f"login-email:{email.lower()}",
+        limit=10,
+        window_seconds=15 * 60,
+    )
+    enforce_rate_limit(
+        identity=f"login-ip:{host}",
+        limit=60,
+        window_seconds=15 * 60,
+    )
+
+
+def enforce_password_reset_limit(host: str) -> None:
+    enforce_rate_limit(
+        identity=f"password-reset-ip:{host}",
+        limit=30,
+        window_seconds=60 * 60,
+    )
+
+
+def enforce_ai_limit(identity: str) -> None:
+    enforce_rate_limit(
+        identity=f"ai:{identity}",
+        limit=20,
+        window_seconds=60,
+    )
 
 
 def enforce_rate_limit(

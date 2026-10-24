@@ -3,7 +3,7 @@ import Link from "next/link";
 const FOOTER_LINKS = [
   {
     label: "Contact",
-    href: "/register",
+    href: "/contact",
     icon: (
       <>
         <rect x="3" y="5" width="18" height="14" rx="3" />

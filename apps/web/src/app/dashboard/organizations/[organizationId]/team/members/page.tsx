@@ -47,13 +47,15 @@ export default async function TeamMembersPage({
             Everyone with access to {org.name}.
           </p>
         </div>
-        <Link
-          href={`/dashboard/organizations/${organizationId}/team/invitations`}
-          className="inline-flex items-center justify-center gap-1.5 h-[36px] px-4 border-0 rounded-full bg-[#171717] text-white font-sans text-[13px] font-medium cursor-pointer hover:bg-black transition-colors"
-        >
-          <UserPlusIcon size={15} />
-          Invite member
-        </Link>
+        {canManage ? (
+          <Link
+            href={`/dashboard/organizations/${organizationId}/team/invitations`}
+            className="inline-flex items-center justify-center gap-1.5 h-[36px] px-4 border-0 rounded-full bg-[#171717] text-white font-sans text-[13px] font-medium cursor-pointer hover:bg-black transition-colors"
+          >
+            <UserPlusIcon size={15} />
+            Invite member
+          </Link>
+        ) : null}
       </div>
 
       <div className="mt-4">

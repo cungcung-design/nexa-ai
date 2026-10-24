@@ -4,8 +4,8 @@ import { CallToAction } from "@/components/public/call-to-action";
 import { ContactSection } from "@/components/public/contact-section";
 import { FaqSection } from "@/components/public/faq-section";
 import { FeaturesSection } from "@/components/public/features-section";
-import { HomeNav } from "@/components/public/home-nav";
 import { PricingSection } from "@/components/public/pricing-section";
+import { PublicHeader } from "@/components/public/public-header";
 import { SecuritySection } from "@/components/public/security-section";
 import { SolutionsSection } from "@/components/public/solutions-section";
 
@@ -93,31 +93,7 @@ export function PublicHomePage() {
   return (
     <div className="nx-homepage">
       <div className="nx-container">
-        <header className="nx-navbar">
-          <Link href="/" className="nx-logo" aria-label="NEXORA home">
-            <span className="nx-logo-mark">
-              <svg className="nx-outline" viewBox="0 0 24 24" aria-hidden="true">
-                <circle cx="6" cy="5" r="2" />
-                <circle cx="18" cy="5" r="2" />
-                <circle cx="6" cy="19" r="2" />
-                <circle cx="18" cy="19" r="2" />
-                <path d="m7.5 6.5 9 11m0-11-9 11" />
-              </svg>
-            </span>
-            <span>NEXORA</span>
-          </Link>
-
-          <HomeNav />
-
-          <div className="nx-nav-actions">
-            <Link href="/login" className="nx-button nx-button-login">
-              Log In
-            </Link>
-            <Link href="/register" className="nx-button nx-button-primary">
-              Get Started
-            </Link>
-          </div>
-        </header>
+        <PublicHeader />
 
         <main>
           <section className="nx-hero" aria-labelledby="hero-title">

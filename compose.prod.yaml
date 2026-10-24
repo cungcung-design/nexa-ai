@@ -1,15 +1,31 @@
+# Production and staging overlay.
+# Use with: docker compose --env-file .env.production -p nexa-staging -f compose.yaml -f compose.prod.yaml up --build
+# The -p flag keeps this stack off the development project named in compose.yaml.
+# Secrets come from the shell or an env file. This file has no credential values.
+# Passwords must be URL-safe (letters and digits) because they are placed in DATABASE_URL.
+# Do not add compose.local-staging.yaml on a VPS.
+
+name: nexa-staging
+
 services:
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
 
     ports:
       - "80:80"
       - "443:443"
+      - "443:443/udp"
 
     environment:
-      APP_DOMAIN: ${APP_DOMAIN}
-      API_DOMAIN: ${API_DOMAIN}
+      APP_DOMAIN: ${APP_DOMAIN:?APP_DOMAIN is required}
+      API_DOMAIN: ${API_DOMAIN:?API_DOMAIN is required}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:?LETSENCRYPT_EMAIL is required}
 
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
@@ -17,19 +33,25 @@ services:
       - caddy_config:/config
 
     depends_on:
-      - web
-      - api
+      web:
+        condition: service_healthy
+      api:
+        condition: service_healthy
 
+    security_opt:
+      - no-new-privileges:true
     networks:
       - internal
 
   postgres:
-    restart: unless-stopped
     shm_size: "256mb"
-
     security_opt:
       - no-new-privileges:true
-
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
+    ports: !reset []
     healthcheck:
       test:
         - CMD-SHELL
@@ -38,13 +60,11 @@ services:
       timeout: 5s
       retries: 5
       start_period: 20s
-
     networks:
       - internal
 
   redis:
     restart: unless-stopped
-
     command:
       - redis-server
       - --appendonly
@@ -55,7 +75,7 @@ services:
       - 256mb
       - --maxmemory-policy
       - noeviction
-
+    ports: !reset []
     healthcheck:
       test:
         - CMD
@@ -64,65 +84,124 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
     security_opt:
       - no-new-privileges:true
-
     networks:
       - internal
 
-  api:
-    env_file:
-      - .env.production
-
-    ports: !reset []
-
+  migrate:
+    env_file: !reset
+      - path: .env.production
+        required: false
     environment:
-      DATABASE_URL: postgresql+psycopg://nexa_prod:${POSTGRES_PASSWORD}@postgres:5432/nexa_ai
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      ENVIRONMENT: ${ENVIRONMENT:?ENVIRONMENT is required}
+      APP_ENV: ${APP_ENV:?APP_ENV is required}
+      TRUSTED_HOSTS: ${API_DOMAIN:?API_DOMAIN is required}
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  api:
+    env_file: !reset
+      - path: .env.production
+        required: false
+    ports: !reset []
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       REDIS_URL: redis://redis:6379/0
       DOCUMENT_STORAGE_PATH: /app/storage/documents
+      AUDIT_EXPORT_STORAGE_PATH: /app/storage/audit-exports
       NEXA_API_URL: http://api:8000
-
+      ENVIRONMENT: ${ENVIRONMENT}
+      APP_ENV: ${APP_ENV}
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-NEXORA}
+      SMTP_USE_STARTTLS: ${SMTP_USE_STARTTLS:-true}
+      SMTP_USE_SSL: ${SMTP_USE_SSL:-false}
+      LLM_BASE_URL: ${LLM_BASE_URL:?LLM_BASE_URL is required and must be reachable from the VPS}
+      LLM_API_KEY: ${LLM_API_KEY:?LLM_API_KEY is required}
+      LLM_DEFAULT_MODEL: ${LLM_DEFAULT_MODEL:-qwen3:4b}
+      # Leave Stripe empty until test-mode keys exist. Live secret keys are out of scope.
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_STARTER_PRICE_ID: ${STRIPE_STARTER_PRICE_ID:-}
+      STRIPE_STARTER_YEARLY_PRICE_ID: ${STRIPE_STARTER_YEARLY_PRICE_ID:-}
+      STRIPE_PRO_PRICE_ID: ${STRIPE_PRO_PRICE_ID:-}
+      STRIPE_PRO_YEARLY_PRICE_ID: ${STRIPE_PRO_YEARLY_PRICE_ID:-}
+      TRUSTED_HOSTS: ${API_DOMAIN:?API_DOMAIN is required}
+      TRUST_PROXY: "true"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     depends_on:
+      migrate:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-
     networks:
       - internal
 
   worker:
-    env_file:
-      - .env.production
-
+    env_file: !reset
+      - path: .env.production
+        required: false
     environment:
-      DATABASE_URL: postgresql+psycopg://nexa_prod:${POSTGRES_PASSWORD}@postgres:5432/nexa_ai
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       REDIS_URL: redis://redis:6379/0
-      CELERY_RESULT_BACKEND: redis://redis:6379/1
       DOCUMENT_STORAGE_PATH: /app/storage/documents
-
+      AUDIT_EXPORT_STORAGE_PATH: /app/storage/audit-exports
+      ENVIRONMENT: ${ENVIRONMENT}
+      APP_ENV: ${APP_ENV}
+      JWT_SECRET: ${JWT_SECRET}
+      LLM_BASE_URL: ${LLM_BASE_URL:?LLM_BASE_URL is required and must be reachable from the VPS}
+      LLM_API_KEY: ${LLM_API_KEY:?LLM_API_KEY is required}
+      LLM_DEFAULT_MODEL: ${LLM_DEFAULT_MODEL:-qwen3:4b}
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     depends_on:
+      migrate:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-
     networks:
       - internal
 
   web:
-    env_file:
-      - .env.production
-
+    env_file: !reset
+      - path: .env.production
+        required: false
     ports: !reset []
-
+    build:
+      args:
+        NEXT_PUBLIC_API_URL: https://${API_DOMAIN:?API_DOMAIN is required}
     environment:
+      NODE_ENV: production
+      NEXA_API_URL: http://api:8000
       NEXT_PUBLIC_API_URL: https://${API_DOMAIN}
-
+      COOKIE_SECURE: "true"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     depends_on:
-      - api
-
+      api:
+        condition: service_healthy
     networks:
       - internal
 

@@ -1,6 +1,8 @@
 import { TeamNav } from "@/components/team/team-nav";
 import { authorizedOrganization } from "@/lib/workspace";
 
+export const instant = false;
+
 export default async function TeamLayout({
   children,
   params,

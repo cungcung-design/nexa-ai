@@ -768,11 +768,16 @@ export type Trace = {
   id: string;
   organization_id: string;
   agent_id: string;
+  agent_name?: string | null;
+  agent_version_id?: string | null;
+  version_number?: number | null;
+  model?: string | null;
   status: string;
   error_code: string | null;
   latency_ms: number;
   prompt_tokens: number;
   completion_tokens: number;
+  total_tokens?: number;
   created_at: string;
 };
 
@@ -782,6 +787,13 @@ export type SpanResponse = {
   name: string;
   duration_ms: number;
   status: string;
+  error_code?: string | null;
+  detail?: {
+    model?: string;
+    tool_name?: string;
+    sources?: { filename: string; document_id?: string }[];
+  } | null;
+  created_at?: string;
 };
 
 export async function backendGet<T>(

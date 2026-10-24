@@ -53,7 +53,7 @@ def test_trace_span_handles_exceptions():
     assert len(context.spans) == 1
     assert context.spans[0]["name"] == "failing_operation"
     assert context.spans[0]["status"] == "error"
-    assert "Something went wrong" in context.spans[0].get("error_code", "")
+    assert context.spans[0].get("error_code") == "ValueError"
 
 
 def test_trace_agent_request_saves_trace():

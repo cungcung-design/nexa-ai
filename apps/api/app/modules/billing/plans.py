@@ -11,6 +11,7 @@ application settings; a plan without a configured Stripe price cannot be
 purchased through self serve checkout.
 """
 
+import re
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -23,6 +24,21 @@ INTERVALS = (MONTHLY, YEARLY)
 
 #: Currency used by the catalog.
 CURRENCY = "usd"
+
+#: Stripe price identifiers accepted by checkout. Placeholders are excluded.
+_PRICE_ID = re.compile(r"^price_[A-Za-z0-9_]+$")
+
+
+def valid_stripe_price_id(value: str | None) -> Optional[str]:
+    """Return a usable Stripe price id, or None when the value is not one."""
+    if value is None:
+        return None
+    candidate = str(value).strip()
+    if not candidate or "REPLACE" in candidate.upper():
+        return None
+    if _PRICE_ID.fullmatch(candidate) is None:
+        return None
+    return candidate
 
 
 @dataclass(frozen=True)
@@ -105,9 +121,7 @@ class Plan:
         if not attribute:
             return None
         value = getattr(settings, attribute, "")
-        if not value or value.startswith("price_REPLACE"):
-            return None
-        return value
+        return valid_stripe_price_id(value)
 
     @property
     def stripe_price_id(self) -> Optional[str]:

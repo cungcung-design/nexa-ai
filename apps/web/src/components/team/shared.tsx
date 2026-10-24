@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { formatTimestamp as formatUtcTimestamp } from "@/lib/format-time";
 
 /** The white workspace card used by every Team screen. */
 export function TeamCard({
@@ -219,13 +220,5 @@ export const secondaryButtonClass =
   "h-[36px] px-4 border border-[#dedede] rounded-full text-[#666] bg-transparent font-sans font-medium text-[13px] cursor-pointer hover:bg-gray-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed";
 
 export function formatTimestamp(value: string): string {
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return value;
-  return parsed.toLocaleString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatUtcTimestamp(value);
 }

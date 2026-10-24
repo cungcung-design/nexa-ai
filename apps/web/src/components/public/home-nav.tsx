@@ -1,51 +1,84 @@
 "use client";
 
-import type { MouseEvent } from "react";
+import Link from "next/link";
+import { useEffect, useId, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 
 const ITEMS = [
-  { id: "product", label: "Product" },
-  { id: "features", label: "Features" },
-  { id: "solutions", label: "Solutions" },
-  { id: "pricing", label: "Pricing" },
-  { id: "security", label: "Security" },
-  { id: "contact", label: "Contact" },
+  { href: "/#product", label: "Product" },
+  { href: "/features", label: "Features" },
+  { href: "/solutions", label: "Solutions" },
+  { href: "/pricing", label: "Pricing" },
+  { href: "/security", label: "Security" },
+  { href: "/contact", label: "Contact" },
 ] as const;
 
 /**
- * The section links of the public landing page.
- *
- * Each item scrolls to the section whose heading uses the same label.
+ * Public section links. Below 700px the stylesheet hides the links until
+ * the menu button adds `is-open`. Product stays on the homepage section.
  */
 export function HomeNav() {
-  function scrollToSection(event: MouseEvent<HTMLAnchorElement>, id: string) {
-    const target = document.getElementById(id);
-    if (!target) return;
+  const pathname = usePathname();
+  const [open, setOpen] = useState(false);
+  const menuId = useId();
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const productRef = useRef<HTMLAnchorElement>(null);
 
-    event.preventDefault();
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
 
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    target.scrollIntoView({
-      behavior: reduceMotion ? "auto" : "smooth",
-      block: "start",
-    });
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape") {
+        return;
+      }
+      event.preventDefault();
+      setOpen(false);
+      toggleRef.current?.focus();
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [open]);
 
-    const nextHash = `#${id}`;
-    if (window.location.hash !== nextHash) {
-      window.history.pushState(null, "", nextHash);
+  function toggleMenu() {
+    const next = !open;
+    setOpen(next);
+    if (next) {
+      productRef.current?.focus();
     }
   }
 
   return (
-    <nav className="nx-nav-links" aria-label="Main navigation">
-      {ITEMS.map((item) => (
-        <a
-          key={item.id}
-          href={`#${item.id}`}
-          onClick={(event) => scrollToSection(event, item.id)}
-        >
-          {item.label}
-        </a>
-      ))}
-    </nav>
+    <>
+      <button
+        ref={toggleRef}
+        type="button"
+        className="nx-nav-toggle"
+        aria-expanded={open}
+        aria-controls={menuId}
+        onClick={toggleMenu}
+      >
+        {open ? "Close menu" : "Open menu"}
+      </button>
+      <nav
+        id={menuId}
+        className={open ? "nx-nav-links is-open" : "nx-nav-links"}
+        aria-label="Main navigation"
+      >
+        {ITEMS.map((item) => (
+          <Link
+            key={item.label}
+            href={item.href}
+            ref={item.label === "Product" ? productRef : undefined}
+          >
+            {item.label}
+          </Link>
+        ))}
+      </nav>
+    </>
   );
 }

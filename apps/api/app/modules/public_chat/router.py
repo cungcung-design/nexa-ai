@@ -6,6 +6,7 @@ from app.ai.public_runtime import run_public_agent
 from app.db.models import AgentDeployment
 from app.db.session import get_db
 from app.modules.public_chat.schemas import PublicChatRequest, PublicChatResponse
+from app.modules.security.rate_limit import client_address, enforce_ai_limit
 
 router = APIRouter(
     prefix="/api/v1/public",
@@ -69,6 +70,7 @@ def public_chat(
     origin = request.headers.get("origin", "")
     if not validate_origin(origin, deployment.allowed_origins):
         raise HTTPException(status_code=403, detail="Origin not allowed")
+    enforce_ai_limit(f"public:{public_id}:{client_address(request)}")
 
     try:
         result = run_public_agent(
@@ -77,8 +79,8 @@ def public_chat(
             agent_id=deployment.agent_id,
             message=payload.message,
         )
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Agent is unavailable")
 
     return PublicChatResponse(
         answer=result["answer"],

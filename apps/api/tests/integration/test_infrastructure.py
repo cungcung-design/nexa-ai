@@ -21,18 +21,29 @@ def test_postgresql_connection():
 
 @pytest.mark.integration
 def test_redis_connection():
-    redis_url = os.environ.get("TEST_REDIS_URL", "redis://localhost:6379/0")
-    try:
-        client = redis.Redis.from_url(
-            redis_url,
-            socket_connect_timeout=5,
-            socket_timeout=5,
+    redis_url = os.environ.get("TEST_REDIS_URL", "").strip()
+    if not redis_url:
+        pytest.skip(
+            "TEST_REDIS_URL is not configured. "
+            "Point it at NEXORA Redis, not a shared localhost:6379."
         )
-        assert client.ping() is True
 
-        client.set("nexa:integration:test", "connected", ex=30)
-        value = client.get("nexa:integration:test")
-        assert value == "connected"
-        client.delete("nexa:integration:test")
-    except redis.RedisError:
-        pytest.skip("Redis is not available")
+    client = redis.Redis.from_url(
+        redis_url,
+        socket_connect_timeout=5,
+        socket_timeout=5,
+        decode_responses=True,
+    )
+    key = "nexa:integration:test"
+    try:
+        assert client.ping() is True
+        client.set(key, "connected", ex=30)
+        assert client.get(key) == "connected"
+    except redis.RedisError as exc:
+        pytest.skip(f"NEXORA Redis is not available: {exc}")
+    finally:
+        try:
+            client.delete(key)
+        except redis.RedisError:
+            pass
+        client.close()

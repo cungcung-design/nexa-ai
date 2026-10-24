@@ -155,6 +155,7 @@ export type ApiKey = {
   scopes: string[];
   is_active: boolean;
   created_at: string;
+  expires_at?: string | null;
   revoked_at: string | null;
 };
 
@@ -201,10 +202,18 @@ async function request<T>(
       }
     }
     if (!response.ok) {
-      const detail =
-        payload && typeof payload === "object" && "error" in payload
-          ? String((payload as { error: unknown }).error)
-          : `Request failed with status ${response.status}`;
+      let detail = `Request failed with status ${response.status}`;
+      if (payload && typeof payload === "object") {
+        const record = payload as Record<string, unknown>;
+        if (typeof record.error === "string" && record.error) {
+          detail = record.error;
+        } else if (typeof record.detail === "string" && record.detail) {
+          detail = record.detail;
+        } else if (Array.isArray(record.detail) && record.detail.length > 0) {
+          const first = record.detail[0] as { msg?: string };
+          if (typeof first?.msg === "string") detail = first.msg;
+        }
+      }
       return { ok: false, data: null, error: detail, status: response.status };
     }
     return { ok: true, data: (payload as T) ?? null, error: null, status: response.status };
@@ -358,7 +367,7 @@ export function listApiKeys(
 
 export function createApiKey(
   organizationId: string,
-  payload: { name: string; scopes: string[] }
+  payload: { name: string; scopes: string[]; expires_at?: string | null }
 ): Promise<ApiResult<CreatedApiKey>> {
   return request<CreatedApiKey>(
     `/api/workspace/${encodeURIComponent(organizationId)}/api-keys`,

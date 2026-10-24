@@ -54,21 +54,21 @@ export function AgentStudio({
   const pathname = usePathname();
   const orgId = params.organizationId ?? "";
   const agentId = params.agentId ?? "";
-
-  const match = STUDIO_NAV.find((n) => isActive(n.segment));
-  const activeSection = match ? match.segment : "overview";
-
-  const [unsaved, setUnsaved] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
-
   const base = `/api/workspace/${encodeURIComponent(orgId)}/agents/${encodeURIComponent(agentId)}`;
   const basePath = `/dashboard/organizations/${encodeURIComponent(orgId)}/agents/${encodeURIComponent(agentId)}/studio`;
   const isActive = (segment: string) => {
     const expected = `${basePath}/${segment}`;
     return pathname === expected || pathname.startsWith(expected + "/");
   };
+
+  const match = STUDIO_NAV.find((n) => isActive(n.segment));
+  const activeSection = match ? match.segment : "overview";
+
+  const [draft, setDraft] = useState(agent.description || "");
+  const [unsaved, setUnsaved] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
   async function saveDraft() {
     setBusy(true);
@@ -78,7 +78,7 @@ export function AgentStudio({
       const response = await fetch(base, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: agent.name, description: agent.description }),
+        body: JSON.stringify({ name: agent.name, description: draft }),
       });
       const data = await response.json();
       if (!response.ok)
@@ -88,6 +88,48 @@ export function AgentStudio({
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not save draft");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function publishDraft() {
+    const prompt = draft.trim();
+    if (prompt.length < 10) {
+      setError("Instructions must be at least 10 characters before a version can be published.");
+      return;
+    }
+    const latest = versions[0];
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const created = await fetch(`${base}/versions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          system_prompt: prompt,
+          model: latest?.model ?? "gpt-4.1-mini",
+          temperature: latest?.temperature ?? 0.3,
+          max_tokens: latest?.max_tokens ?? 1024,
+          tools_config: latest?.tools_config ?? {},
+        }),
+      });
+      const version = await created.json();
+      if (!created.ok)
+        throw new Error(getError(version, "Could not create version"));
+      const versionId = typeof version.id === "string" ? version.id : "";
+      const response = await fetch(`${base}/publish/${encodeURIComponent(versionId)}`, {
+        method: "POST",
+      });
+      const data = await response.json();
+      if (!response.ok)
+        throw new Error(getError(data, "Could not publish version"));
+      setUnsaved(false);
+      setNotice("Version published.");
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not publish version");
     } finally {
       setBusy(false);
     }
@@ -186,10 +228,10 @@ export function AgentStudio({
             Run Evaluation
           </button>
           <button
-            onClick={() => {}}
-            disabled={!isPublished}
+            onClick={publishDraft}
+            disabled={busy || !!agent.is_archived}
             className={`px-4 py-2.5 text-xs font-medium rounded-xl transition-colors shadow-sm ${
-              !isPublished
+              busy || agent.is_archived
                 ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                 : "bg-indigo-600 hover:bg-indigo-700 text-white"
             }`}
@@ -244,7 +286,7 @@ export function AgentStudio({
                   </p>
                   <p className="text-sm font-semibold text-gray-900">{agent.name}</p>
                   <p className="text-xs text-gray-500 mt-1">
-                    {agent.description || "No description set."}
+                    {draft || "No description set."}
                   </p>
                 </div>
                 <div className="bg-gray-50 border border-gray-100 rounded-xl p-4">
@@ -313,8 +355,11 @@ export function AgentStudio({
                 </button>
               </div>
               <textarea
-                value={agent.description || ""}
-                onChange={() => setUnsaved(true)}
+                value={draft}
+                onChange={(event) => {
+                  setDraft(event.target.value);
+                  setUnsaved(true);
+                }}
                 rows={12}
                 className="w-full bg-transparent text-sm text-gray-900 focus:outline-none resize-none leading-relaxed"
                 placeholder="Define the agent's behavior, persona, and instructions..."

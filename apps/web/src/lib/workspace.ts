@@ -8,12 +8,14 @@ import {
 } from "@/lib/api";
 
 export async function authorizedOrganization(id: string) {
-  const orgs = asArray<Organization>(await backendGet<unknown>(ORGS_PATH));
+  const orgs = await listOrganizations();
   return orgs.find((o) => o.id === id) ?? null;
 }
 
 export async function listOrganizations(): Promise<Organization[]> {
-  return asArray<Organization>(await backendGet<unknown>(ORGS_PATH));
+  return asArray<Organization>(
+    await backendGet<unknown>(ORGS_PATH, { revalidate: 0 })
+  );
 }
 
 // Active workspace for non-org-scoped pages: last selection wins, otherwise

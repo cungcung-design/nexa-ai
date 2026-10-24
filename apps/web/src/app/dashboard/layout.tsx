@@ -29,7 +29,7 @@ async function DashboardContent({ children }: { children: React.ReactNode }) {
     redirect("/login?error=session");
   }
   const organizations = asArray<Organization>(
-    await backendGet<unknown>(ORGS_PATH)
+    await backendGet<unknown>(ORGS_PATH, { revalidate: 0 })
   );
   return (
     <DashboardShell user={user} organizations={organizations}>

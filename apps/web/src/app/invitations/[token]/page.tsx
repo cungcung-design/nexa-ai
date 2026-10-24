@@ -9,7 +9,7 @@ import {
   TeamFooterNote,
   formatTimestamp,
 } from "@/components/team/shared";
-import { invitationPreview } from "@/lib/api";
+import { AUTH_ME_PATH, backendGet, invitationPreview, type User } from "@/lib/api";
 
 // The preview is read per request, so the route renders at request time
 // instead of being prerendered.
@@ -23,6 +23,12 @@ export default async function AcceptInvitationPage({
   const { token } = await params;
   const preview = await invitationPreview(token);
   const signedIn = !!(await cookies()).get("nexa_access")?.value;
+  const user = signedIn
+    ? await backendGet<User>(AUTH_ME_PATH, { revalidate: 0 })
+    : null;
+  const emailMatches =
+    !!user?.email &&
+    user.email.trim().toLowerCase() === preview?.email.trim().toLowerCase();
 
   if (!preview) {
     return (
@@ -100,11 +106,24 @@ export default async function AcceptInvitationPage({
 
           <div className="mt-5">
             {pending && !expired ? (
-              signedIn ? (
+              emailMatches ? (
                 <InvitationAccept
                   token={token}
                   organizationId={preview.organization_id}
                 />
+              ) : user ? (
+                <div>
+                  <p className="m-0 text-[13px] leading-[19px] text-[#444]">
+                    You are signed in as {user?.email}. This invitation can
+                    only be accepted by {preview.email}.
+                  </p>
+                  <Link
+                    href={`/login?next=${encodeURIComponent(`/invitations/${token}`)}`}
+                    className="mt-3 inline-flex items-center justify-center w-full h-[36px] px-4 border-0 rounded-full bg-[#171717] text-white font-sans text-[13px] font-medium hover:bg-black transition-colors"
+                  >
+                    Sign in as {preview.email}
+                  </Link>
+                </div>
               ) : (
                 <div>
                   <Link

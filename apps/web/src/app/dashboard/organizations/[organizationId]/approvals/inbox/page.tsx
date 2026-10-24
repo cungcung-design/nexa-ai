@@ -44,7 +44,8 @@ export default async function ApprovalsInboxPage({
   const approvals = org
     ? asArray<ApprovalListItem>(
         await backendGet<unknown>(
-          `/api/v1/organizations/${org.id}/approvals`
+          `/api/v1/organizations/${org.id}/approvals`,
+          { revalidate: 0 }
         )
       )
     : [];

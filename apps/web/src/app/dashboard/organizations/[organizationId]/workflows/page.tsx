@@ -1,7 +1,10 @@
 import { asArray, backendGet, type Agent } from "@/lib/api";
 import { authorizedOrganization } from "@/lib/workspace";
-import { WorkflowBuilder } from "@/components/workflow-builder";
-import { type Approval } from "@/components/workflow-center";
+import {
+  WorkflowConsole,
+  type WorkflowDefinition,
+  type WorkflowExecution,
+} from "@/components/workflow-console";
 import { Suspense } from "react";
 
 export const instant = false;
@@ -13,35 +16,35 @@ async function WorkflowsContent({
 }) {
   const { organizationId } = await params;
   const org = await authorizedOrganization(organizationId);
-  const canReview = org?.role === "OWNER" || org?.role === "ADMIN";
-
-  const agents = org
-    ? asArray<Agent>(
-        await backendGet<unknown>(
-          `/api/v1/organizations/${org.id}/agents`
-        )
-      )
-    : [];
-  const approvals =
-    org && canReview
-      ? asArray<Approval>(
-          await backendGet<unknown>(
-            `/api/v1/organizations/${org.id}/workflows/approvals`
-          )
-        )
-      : [];
-
   if (!org) {
-    return <p className="p-6 text-zinc-400">Choose an organization to continue.</p>;
+    return <p className="text-sm text-slate-500">Choose an organization to continue.</p>;
   }
 
+  const agents = asArray<Agent>(
+    await backendGet<unknown>(`/api/v1/organizations/${org.id}/agents`, {
+      revalidate: 0,
+    })
+  );
+  const definitions = asArray<WorkflowDefinition>(
+    await backendGet<unknown>(
+      `/api/v1/organizations/${org.id}/workflows/definitions`,
+      { revalidate: 0 }
+    )
+  );
+  const executions = asArray<WorkflowExecution>(
+    await backendGet<unknown>(
+      `/api/v1/organizations/${org.id}/workflows/executions`,
+      { revalidate: 0 }
+    )
+  );
+
   return (
-    <WorkflowBuilder
-      org={org}
+    <WorkflowConsole
       orgId={org.id}
+      role={org.role}
       agents={agents}
-      initialApprovals={approvals}
-      canReview={canReview}
+      definitions={definitions}
+      initialExecutions={executions}
     />
   );
 }
@@ -52,7 +55,7 @@ export default async function WorkflowsPage({
   params: Promise<{ organizationId: string }>;
 }) {
   return (
-    <Suspense fallback={<div className="text-zinc-400">Loading...</div>}>
+    <Suspense fallback={<p className="text-sm text-slate-500">Loading workflows...</p>}>
       <WorkflowsContent params={params} />
     </Suspense>
   );

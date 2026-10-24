@@ -2,7 +2,7 @@ from uuid import UUID
 import hashlib
 import secrets
 from datetime import datetime, timedelta, timezone
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -45,6 +45,11 @@ from app.modules.auth.schemas import (
     EmailVerificationStatusResponse,
 )
 from app.modules.security.audit import record_audit_event
+from app.modules.security.rate_limit import (
+    client_address,
+    enforce_login_limits,
+    enforce_password_reset_limit,
+)
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Authentication"])
 
@@ -256,7 +261,12 @@ def register(request: RegisterRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(request: LoginRequest, db: Session = Depends(get_db)):
+def login(
+    request: LoginRequest,
+    http_request: Request,
+    db: Session = Depends(get_db),
+):
+    enforce_login_limits(request.email, client_address(http_request))
     user = db.query(User).filter(User.email == request.email.lower()).first()
     if not user or not verify_password(request.password, user.password_hash):
         if user is not None:
@@ -318,6 +328,7 @@ def _record_password_reset_event(
 )
 def request_password_reset_link(
     request: PasswordResetRequest,
+    http_request: Request,
     db: Session = Depends(get_db),
 ):
     """Send a password reset link.
@@ -325,6 +336,7 @@ def request_password_reset_link(
     The answer is the same for every address, so the endpoint cannot be used
     to find out which accounts exist.
     """
+    enforce_password_reset_limit(client_address(http_request))
     try:
         result = request_password_reset(
             db,

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ChevronRightIcon, EventIcon } from "@/components/audit-logs/icons";
 import { RelativeTime } from "@/components/audit-logs/relative-time";
+import { formatTimestamp as formatUtcTimestamp } from "@/lib/format-time";
 
 export type AuditEventItem = {
   id: string;
@@ -73,16 +74,7 @@ export function categoryLabel(category: string | null | undefined): string {
 }
 
 export function formatTimestamp(iso: string | null | undefined): string {
-  if (!iso) return "—";
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return iso;
-  return date.toLocaleString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatUtcTimestamp(iso);
 }
 
 export function formatRelative(iso: string | null | undefined): string {

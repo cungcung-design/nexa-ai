@@ -57,6 +57,11 @@ def authenticate_api_key(
     if record is None:
         return None
 
+    if record.expires_at is not None and record.expires_at <= datetime.now(
+        timezone.utc
+    ):
+        return None
+
     if required_scope not in record.scopes:
         return None
 

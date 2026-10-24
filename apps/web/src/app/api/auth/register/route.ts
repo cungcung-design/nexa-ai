@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { sessionCookieOptions } from "@/lib/session-cookie";
+
 const base = (
   process.env.NEXA_API_URL ??
   process.env.NEXT_PUBLIC_API_URL ??
@@ -78,13 +80,11 @@ export async function POST(request: NextRequest) {
         { status: 502 }
       );
     const response = NextResponse.json({ ok: true });
-    response.cookies.set("nexa_access", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: TOKEN_MAX_AGE_SECONDS,
-    });
+    response.cookies.set(
+      "nexa_access",
+      token,
+      sessionCookieOptions(TOKEN_MAX_AGE_SECONDS),
+    );
     return response;
   } catch {
     return NextResponse.json(

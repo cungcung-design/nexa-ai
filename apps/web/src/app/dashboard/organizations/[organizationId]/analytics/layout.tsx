@@ -14,10 +14,6 @@ const TABS: { label: string; segment: string }[] = [
   { label: "Knowledge", segment: "analytics/knowledge" },
 ];
 
-const prefersReducedMotion =
-  typeof window !== "undefined" &&
-  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
 export default function AnalyticsLayout({
   children,
 }: {
@@ -29,6 +25,7 @@ export default function AnalyticsLayout({
 
   const tabRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
   const [indicator, setIndicator] = useState({ x: 0, width: 0 });
+  const [reduceMotion, setReduceMotion] = useState(false);
 
   const isActive = (segment: string, exact = false) => {
     if (!orgId) return false;
@@ -42,7 +39,13 @@ export default function AnalyticsLayout({
   );
 
   useEffect(() => {
-    if (prefersReducedMotion || !activeTab) return;
+    setReduceMotion(
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    );
+  }, []);
+
+  useEffect(() => {
+    if (reduceMotion || !activeTab) return;
     const el = tabRefs.current[activeTab.segment];
     if (!el) return;
     const rect = el.getBoundingClientRect();
@@ -52,7 +55,7 @@ export default function AnalyticsLayout({
       x: rect.left - navRect.left,
       width: rect.width,
     });
-  }, [pathname, orgId, activeTab]);
+  }, [pathname, orgId, activeTab, reduceMotion]);
 
   return (
     <div className="space-y-6">
@@ -60,7 +63,7 @@ export default function AnalyticsLayout({
       <div className="sticky top-16 z-30 bg-gray-50/90 backdrop-blur-md border-b border-gray-200 pt-2 pb-4">
         <div className="relative flex gap-8 overflow-x-auto no-scrollbar">
           {/* Sliding underline indicator */}
-          {!prefersReducedMotion && (
+          {!reduceMotion && (
             <div
               className="absolute bottom-0 h-[2px] bg-gray-900 rounded-full pointer-events-none transition-all duration-200 ease-out"
               style={{

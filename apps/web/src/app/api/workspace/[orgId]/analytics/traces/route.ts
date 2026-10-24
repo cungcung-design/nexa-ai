@@ -9,5 +9,9 @@ export async function GET(
   { params }: { params: Promise<{ orgId: string }> },
 ) {
   const { orgId } = await params;
-  return proxyRequest(request, orgId, path(orgId));
+  return proxyRequest(
+    request,
+    orgId,
+    path(orgId) + request.nextUrl.search,
+  );
 }

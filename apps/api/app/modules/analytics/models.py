@@ -52,6 +52,11 @@ class AIRequestTrace(Base):
     completion_tokens: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0
     )
+    model: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    agent_version_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        nullable=True,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now
     )
@@ -85,6 +90,7 @@ class AIExecutionSpan(Base):
         String(20), nullable=False, default="success"
     )
     error_code: Mapped[String | None] = mapped_column(String(100), nullable=True)
+    detail: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now
     )

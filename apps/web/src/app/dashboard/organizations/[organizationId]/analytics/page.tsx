@@ -1,6 +1,8 @@
 import { authorizedOrganization } from "@/lib/workspace";
 import { AnalyticsClient } from "@/components/analytics-client";
 
+export const instant = false;
+
 export default async function AnalyticsPage({
   params,
 }: {

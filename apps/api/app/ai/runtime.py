@@ -10,7 +10,12 @@ from app.ai.tools import (
     execute_tool,
 )
 from app.db.models import Agent, AgentVersion
-from app.modules.analytics.tracing import trace_agent_request, set_trace_usage, trace_span
+from app.modules.analytics.tracing import (
+    set_trace_metadata,
+    set_trace_usage,
+    trace_agent_request,
+    trace_span,
+)
 from app.modules.settings.service import (
     SettingsValidationError,
     enforce_resolution,
@@ -118,12 +123,23 @@ def _run_agent_impl(
     )
 
     # Knowledge retrieval with tracing
-    with trace_span("knowledge_retrieval"):
+    with trace_span("knowledge_retrieval") as span:
         context_chunks = retrieve_context(
             db=db,
             organization_id=organization_id,
             query=message,
             limit=5,
+        )
+        span.set_detail(
+            {
+                "sources": [
+                    {
+                        "filename": chunk.get("filename") or "Untitled",
+                        "document_id": str(chunk.get("document_id") or ""),
+                    }
+                    for chunk in context_chunks
+                ]
+            }
         )
 
     context_text = "\n\n".join(
@@ -167,7 +183,7 @@ def _run_agent_impl(
 
     while True:
         # LLM request with tracing
-        with trace_span("llm_call"):
+        with trace_span("llm_call") as span:
             completion = client.chat.completions.create(
                 model=model,
                 messages=messages,
@@ -175,6 +191,7 @@ def _run_agent_impl(
                 max_tokens=version.max_tokens,
                 tools=TOOL_DEFINITIONS,
             )
+            span.set_detail({"model": model})
         usage = completion.usage
         choice = completion.choices[0]
         assistant_message = choice.message
@@ -230,7 +247,8 @@ def _run_agent_impl(
                 tool_arguments = {}
             
             # Tool execution with tracing
-            with trace_span("tool_execution"):
+            with trace_span("tool_execution") as span:
+                span.set_detail({"tool_name": tool_name})
                 try:
                     tool_result = execute_tool(
                         tool_name, tool_arguments
@@ -310,13 +328,15 @@ def run_agent(
             run_override=run_override,
         )
 
-        # Only use token values actually reported
-        # by the model provider.
-        usage = result.get("usage") or {}
-
+        # Token counts live on the run result. The provider does not
+        # return a nested usage object from this function.
         set_trace_usage(
-            prompt_tokens=usage.get("prompt_tokens"),
-            completion_tokens=usage.get("completion_tokens"),
+            prompt_tokens=result.get("prompt_tokens"),
+            completion_tokens=result.get("completion_tokens"),
+        )
+        set_trace_metadata(
+            model=result.get("model"),
+            agent_version_id=result.get("version_id"),
         )
 
         return result

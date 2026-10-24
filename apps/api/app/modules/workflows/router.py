@@ -8,7 +8,11 @@ from fastapi import (
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from langgraph.types import Command
-from app.ai.workflows.approval import approval_graph
+from app.ai.workflows.approval import (
+    awaiting_human_approval,
+    checkpoint_organization_id,
+)
+from app.ai.workflows.checkpointer import get_approval_graph
 from app.db.models import (
     User,
     Agent,
@@ -31,6 +35,9 @@ from app.modules.workflows.schemas import (
     ApprovalDecision,
     ApprovalResponse,
     ApprovalListItem,
+    WorkflowDefinition,
+    WorkflowExecutionItem,
+    WorkflowInputField,
 )
 from app.modules.security.audit import record_audit_event
 from app.modules.settings.service import (
@@ -46,6 +53,32 @@ router = APIRouter(
 #: Stable key of the workflow that is executed. Workflow level configuration
 #: overrides are stored against this key.
 WORKFLOW_KEY = "demo_create_note"
+
+IMPLEMENTED_WORKFLOWS = [
+    WorkflowDefinition(
+        key=WORKFLOW_KEY,
+        name=WORKFLOW_KEY,
+        description=(
+            "Pauses for human approval, then stores a demo note. "
+            "It does not call an external system."
+        ),
+        requires_approval=True,
+        inputs=[
+            WorkflowInputField(
+                name="agent_id",
+                type="uuid",
+                required=True,
+            ),
+            WorkflowInputField(
+                name="note",
+                type="string",
+                required=True,
+                min_length=1,
+                max_length=500,
+            ),
+        ],
+    )
+]
 
 APPROVAL_ROLES = [Role.OWNER, Role.ADMIN]
 ACTION_ROLES = [Role.OWNER, Role.ADMIN, Role.DEVELOPER]
@@ -108,6 +141,108 @@ def _resolve_workflow_config(
         "agent_version_id": version.id,
         "resolved": resolved,
     }
+
+
+def _checkpoint_view(thread_id: str) -> tuple[dict | None, bool, str | None]:
+    """Read the saved graph result without starting a new run."""
+    try:
+        graph = get_approval_graph()
+        snapshot = graph.get_state({"configurable": {"thread_id": thread_id}})
+    except Exception:
+        return None, False, "Checkpoint unavailable"
+    values = getattr(snapshot, "values", None) or {}
+    result = values.get("result")
+    return (
+        result if isinstance(result, dict) else None,
+        awaiting_human_approval(snapshot),
+        None,
+    )
+
+
+def _display_status(
+    approval_status: str,
+    waiting: bool,
+    checkpoint_error: str | None,
+) -> str:
+    if checkpoint_error and approval_status == "PENDING":
+        return "failed"
+    if approval_status == "PENDING" and waiting:
+        return "waiting_for_approval"
+    if approval_status == "PENDING":
+        return "running"
+    if approval_status == "APPROVED":
+        return "completed"
+    if approval_status == "REJECTED":
+        return "rejected"
+    return "failed"
+
+
+@router.get("/definitions", response_model=list[WorkflowDefinition])
+def list_workflow_definitions(
+    organization_id: UUID,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    require_membership(db, user.id, organization_id)
+    return IMPLEMENTED_WORKFLOWS
+
+
+@router.get("/executions", response_model=list[WorkflowExecutionItem])
+def list_workflow_executions(
+    organization_id: UUID,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    require_membership(db, user.id, organization_id)
+    approvals = db.scalars(
+        select(WorkflowApproval)
+        .where(WorkflowApproval.organization_id == organization_id)
+        .order_by(WorkflowApproval.created_at.desc())
+    ).all()
+    agent_ids = {item.agent_id for item in approvals}
+    names: dict[UUID, str] = {}
+    if agent_ids:
+        agents = db.scalars(
+            select(Agent).where(
+                Agent.organization_id == organization_id,
+                Agent.id.in_(agent_ids),
+            )
+        ).all()
+        names = {agent.id: agent.name for agent in agents}
+
+    items: list[WorkflowExecutionItem] = []
+    for approval in approvals:
+        result, waiting, checkpoint_error = _checkpoint_view(approval.thread_id)
+        items.append(
+            WorkflowExecutionItem(
+                id=approval.id,
+                workflow_key=approval.action,
+                workflow_name=approval.action,
+                thread_id=approval.thread_id,
+                status=approval.status,
+                display_status=_display_status(
+                    approval.status,
+                    waiting,
+                    checkpoint_error,
+                ),
+                agent_id=approval.agent_id,
+                agent_name=names.get(approval.agent_id),
+                arguments=approval.arguments or {},
+                result=result,
+                checkpoint_error=checkpoint_error,
+                created_at=(
+                    approval.created_at.isoformat()
+                    if approval.created_at
+                    else ""
+                ),
+                completed_at=(
+                    approval.decided_at.isoformat()
+                    if approval.decided_at
+                    else None
+                ),
+            )
+        )
+    return items
 
 
 @router.post(
@@ -185,7 +320,8 @@ def request_demo_action(
     )
 
     config = {"configurable": {"thread_id": thread_id}}
-    approval_graph.invoke(
+    graph = get_approval_graph()
+    graph.invoke(
         {
             "organization_id": str(organization_id),
             "agent_id": str(payload.agent_id),
@@ -194,6 +330,11 @@ def request_demo_action(
         },
         config=config,
     )
+    if not awaiting_human_approval(graph.get_state(config)):
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Workflow did not pause for approval",
+        )
     record_workflow_execution(db, organization_id)
 
     record_audit_event(
@@ -255,25 +396,29 @@ def list_approvals(
     ]
 
 
-@router.post(
-    "/approvals/{approval_id}/decision",
-    response_model=ApprovalResponse,
-)
-def decide_approval(
+def apply_workflow_decision(
+    db: Session,
+    *,
     organization_id: UUID,
     approval_id: UUID,
-    payload: ApprovalDecision,
-    user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
+    user: User,
+    approved: bool,
+) -> ApprovalResponse:
+    """Resume the checkpointed workflow for one dashboard or API decision.
+
+    The row is locked first so two reviewers cannot both resume the same
+    thread. The graph is resumed on the original thread id.
+    """
     require_owner_or_admin(db, user.id, organization_id)
 
     approval = db.scalar(
-        select(WorkflowApproval).where(
+        select(WorkflowApproval)
+        .where(
             WorkflowApproval.id == approval_id,
             WorkflowApproval.organization_id
             == organization_id,
         )
+        .with_for_update()
     )
     if not approval:
         raise HTTPException(
@@ -288,12 +433,48 @@ def decide_approval(
         )
 
     config = {"configurable": {"thread_id": approval.thread_id}}
+    graph = get_approval_graph()
+    try:
+        snapshot = graph.get_state(config)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Workflow checkpoint not found",
+        ) from exc
+    stored_organization_id = checkpoint_organization_id(snapshot)
+    if stored_organization_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Workflow checkpoint not found",
+        )
+    if stored_organization_id != str(organization_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Approval not found",
+        )
+    if not awaiting_human_approval(snapshot):
+        if snapshot.values.get("result") is not None:
+            approval.status = (
+                "APPROVED" if snapshot.values.get("approved") else "REJECTED"
+            )
+            approval.decided_by = user.id
+            approval.decided_at = utc_now()
+            db.commit()
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Approval already decided",
+            )
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Workflow is not waiting for approval",
+        )
+
     execution_result: dict | None = None
     execution_failed = False
     failure_reason: str | None = None
     try:
-        graph_result = approval_graph.invoke(
-            Command(resume=payload.approved),
+        graph_result = graph.invoke(
+            Command(resume=approved),
             config=config,
         )
         execution_result = (
@@ -323,23 +504,17 @@ def decide_approval(
             detail=f"Workflow execution failed: {exc}",
         )
 
-    approval.status = (
-        "APPROVED" if payload.approved else "REJECTED"
-    )
+    approval.status = "APPROVED" if approved else "REJECTED"
     approval.decided_by = user.id
     approval.decided_at = utc_now()
     db.commit()
     db.refresh(approval)
 
-    # The decision and the execution outcome are recorded as two separate
-    # events so that an approval is never shown as proof of execution.
     record_audit_event(
         db,
         organization_id=organization_id,
         actor_user_id=user.id,
-        action=(
-            "approval.approved" if payload.approved else "approval.rejected"
-        ),
+        action="approval.approved" if approved else "approval.rejected",
         resource_type="approval",
         resource_id=approval.id,
         resource_name=approval.action,
@@ -350,7 +525,7 @@ def decide_approval(
         },
         summary=(
             f"{user.email} "
-            f"{'approved' if payload.approved else 'rejected'} the request "
+            f"{'approved' if approved else 'rejected'} the request "
             f"“{approval.action}”."
         ),
     )
@@ -381,4 +556,24 @@ def decide_approval(
         status=approval.status,
         action=approval.action,
         thread_id=approval.thread_id,
+    )
+
+
+@router.post(
+    "/approvals/{approval_id}/decision",
+    response_model=ApprovalResponse,
+)
+def decide_approval(
+    organization_id: UUID,
+    approval_id: UUID,
+    payload: ApprovalDecision,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return apply_workflow_decision(
+        db,
+        organization_id=organization_id,
+        approval_id=approval_id,
+        user=user,
+        approved=payload.approved,
     )

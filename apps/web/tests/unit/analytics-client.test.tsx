@@ -71,7 +71,7 @@ describe("AnalyticsClient", () => {
     render(<AnalyticsClient orgId="org-1" />);
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/workspace/org-1/analytics/traces",
+      "/api/workspace/org-1/analytics/traces?days=30",
       expect.objectContaining({ credentials: "include" })
     );
   });
@@ -90,8 +90,12 @@ describe("AnalyticsClient", () => {
     // Avg latency: (1200+800+1500)/3 = 1166.67ms = 1.17s
     const latencies = await screen.findAllByText("1.17s");
     expect(latencies.length).toBeGreaterThanOrEqual(1);
-    // Total cost: 675/1000 * 0.002 = 0.00135 -> $0.00
-    expect(await screen.findByText("$0.00")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Unavailable" })
+    ).toBeInTheDocument();
+    expect(await screen.findByText(/Token usage 675/)).toBeInTheDocument();
+    expect(screen.queryByText(/vs\. previous/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Illustrative/)).not.toBeInTheDocument();
   });
 
   it("renders all metric card labels", async () => {
@@ -165,20 +169,22 @@ describe("AnalyticsClient", () => {
     expect(zeros.length).toBeGreaterThanOrEqual(1);
     expect(await screen.findByText("0%")).toBeInTheDocument();
     expect(await screen.findByText("0.00s")).toBeInTheDocument();
-    expect(await screen.findByText("$0.00")).toBeInTheDocument();
+    expect(await screen.findByText("Unavailable")).toBeInTheDocument();
+    expect((await screen.findAllByText("No requests in this range.")).length).toBeGreaterThan(0);
   });
 
-  it("renders day-of-week labels in chart", async () => {
-    mockFetchTraces(mockTraces);
-
+  it("refetches when the date range changes", async () => {
+    const fetchMock = mockFetchTraces(mockTraces);
+    const { default: userEvent } = await import("@testing-library/user-event");
+    const user = userEvent.setup();
     render(<AnalyticsClient orgId="org-1" />);
+    await screen.findByText("67%");
 
-    await screen.findAllByText("Mon");
-    await screen.findAllByText("Tue");
-    await screen.findAllByText("Wed");
-    await screen.findAllByText("Thu");
-    await screen.findAllByText("Fri");
-    await screen.findAllByText("Sat");
-    await screen.findAllByText("Sun");
+    await user.selectOptions(screen.getByLabelText("Date range"), "7");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/workspace/org-1/analytics/traces?days=7",
+      expect.objectContaining({ credentials: "include" })
+    );
   });
 });

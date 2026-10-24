@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.db.models import Membership, MembershipStatus, Organization, Role, User
@@ -27,12 +28,15 @@ from app.modules.team.service import (
 router = APIRouter(prefix="/api/v1/invitations", tags=["Team Invitations"])
 
 
-def _find_invitation(db: Session, token: str) -> OrganizationInvitation:
-    invitation = db.scalar(
-        select(OrganizationInvitation).where(
-            OrganizationInvitation.token_hash == hash_invitation_token(token)
-        )
+def _find_invitation(
+    db: Session, token: str, *, lock: bool = False
+) -> OrganizationInvitation:
+    statement = select(OrganizationInvitation).where(
+        OrganizationInvitation.token_hash == hash_invitation_token(token)
     )
+    if lock:
+        statement = statement.with_for_update()
+    invitation = db.scalar(statement)
     if invitation is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Invitation not found"
@@ -66,7 +70,7 @@ def accept_invitation(
     db: Session = Depends(get_db),
 ):
     """Accept an invitation and create or activate the membership."""
-    invitation = _find_invitation(db, token)
+    invitation = _find_invitation(db, token, lock=True)
 
     if invitation.status == InvitationStatus.ACCEPTED.value:
         raise HTTPException(
@@ -130,12 +134,21 @@ def accept_invitation(
         membership.role = role
         membership.status = MembershipStatus.ACTIVE.value
 
+    try:
+        db.flush()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="You are already a member of this workspace",
+        )
+
     invitation.status = InvitationStatus.ACCEPTED.value
     invitation.accepted_at = datetime.now(timezone.utc)
 
     try:
         db.commit()
-    except Exception:
+    except IntegrityError:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,

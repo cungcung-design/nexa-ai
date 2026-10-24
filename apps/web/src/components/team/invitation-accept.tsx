@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { primaryButtonClass } from "@/components/team/shared";
 
@@ -23,7 +22,6 @@ export function InvitationAccept({
   token: string;
   organizationId: string;
 }) {
-  const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -40,8 +38,12 @@ export function InvitationAccept({
         );
         return;
       }
-      router.push(`/dashboard/organizations/${organizationId}/team`);
-      router.refresh();
+      document.cookie = `nexa_active_org=${encodeURIComponent(
+        organizationId
+      )};path=/;max-age=31536000;samesite=lax`;
+      window.location.assign(
+        `/dashboard/organizations/${encodeURIComponent(organizationId)}/team`
+      );
     } catch {
       setError("The workspace could not be reached.");
     } finally {

@@ -23,6 +23,8 @@ import {
 } from "@/lib/api";
 import { authorizedOrganization } from "@/lib/workspace";
 
+export const instant = false;
+
 export default async function TeamOverviewPage({
   params,
 }: {

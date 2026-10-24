@@ -11,7 +11,7 @@ import { authorizedOrganization } from "@/lib/workspace";
  * request is accepted when the origin host matches either the resolved
  * request host or the host the browser actually asked for.
  */
-function isSameOrigin(request: NextRequest): boolean {
+export function isSameOrigin(request: NextRequest): boolean {
   const origin = request.headers.get("origin");
   if (!origin) return false;
 

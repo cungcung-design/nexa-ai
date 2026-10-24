@@ -1,15 +1,26 @@
 """Tests for the Team module and workspace permission relationships."""
 
+import os
+import threading
 import uuid
 from datetime import datetime, timedelta, timezone
 
 import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
-from sqlalchemy import select
+from sqlalchemy import create_engine, func, select
+from sqlalchemy.orm import Session
 
-from app.db.models import User
+from app.core.security import hash_password
+from app.db.models import Membership, Organization, Role, User
 from app.modules.security.audit_models import SecurityAuditEvent
-from app.modules.team.models import OrganizationInvitation
+from app.modules.team.invitation_router import accept_invitation
+from app.modules.team.models import InvitationStatus, OrganizationInvitation
+from app.modules.team.service import (
+    generate_invitation_token,
+    hash_invitation_token,
+    invitation_expiry,
+)
 
 PASSWORD = "Team-Module-Secure-Pass"
 
@@ -799,3 +810,227 @@ def test_audit_events_record_before_and_after_role_values(
     assert event.changes["after"]["role"] == "DEVELOPER"
     assert event.actor_user_id is not None
     assert event.resource_id is not None
+
+
+def test_accepting_invitation_keeps_other_workspaces_and_assigns_the_role(
+    client: TestClient,
+):
+    suffix = uuid.uuid4().hex[:8]
+    owner = _register(client, f"keep-owner-{suffix}@example.com")
+    member_email = f"keep-member-{suffix}@example.com"
+    member = _register(client, member_email)
+    outsider = _register(client, f"keep-out-{suffix}@example.com")
+
+    invited = client.post(
+        "/api/v1/organizations",
+        headers=_auth(owner),
+        json={"name": "Invited Workspace", "slug": f"invited-{suffix}"},
+    )
+    assert invited.status_code == 201, invited.text
+    invited_id = invited.json()["id"]
+
+    personal = client.post(
+        "/api/v1/organizations",
+        headers=_auth(member),
+        json={"name": "Personal Workspace", "slug": f"personal-{suffix}"},
+    )
+    assert personal.status_code == 201, personal.text
+    personal_id = personal.json()["id"]
+
+    created = client.post(
+        f"/api/v1/organizations/{invited_id}/team/invitations",
+        headers=_auth(owner),
+        json={"email": member_email, "role": "VIEWER"},
+    )
+    assert created.status_code == 201, created.text
+    invite_token = created.json()["invite_token"]
+
+    accepted = client.post(
+        f"/api/v1/invitations/{invite_token}/accept",
+        headers=_auth(member),
+    )
+    assert accepted.status_code == 200, accepted.text
+    body = accepted.json()
+    assert body["role"] == "VIEWER"
+    assert body["email"] == member_email
+    assert "invite_token" not in body
+    assert invite_token not in accepted.text
+
+    organizations = client.get(
+        "/api/v1/organizations", headers=_auth(member)
+    )
+    assert organizations.status_code == 200, organizations.text
+    roles = {item["id"]: item["role"] for item in organizations.json()}
+    assert roles[invited_id] == "VIEWER"
+    assert roles[personal_id] == "OWNER"
+
+    for organization_id in (invited_id, personal_id):
+        opened = client.get(
+            f"/api/v1/organizations/{organization_id}",
+            headers=_auth(member),
+        )
+        assert opened.status_code == 200, opened.text
+
+    hidden = client.get(
+        f"/api/v1/organizations/{invited_id}",
+        headers=_auth(outsider),
+    )
+    assert hidden.status_code == 404, hidden.text
+
+    forbidden = client.post(
+        f"/api/v1/organizations/{invited_id}/team/invitations",
+        headers=_auth(member),
+        json={"email": f"nope-{suffix}@example.com", "role": "VIEWER"},
+    )
+    assert forbidden.status_code == 403, forbidden.text
+
+    repeated = client.post(
+        f"/api/v1/invitations/{invite_token}/accept",
+        headers=_auth(member),
+    )
+    assert repeated.status_code == 409, repeated.text
+
+    members = client.get(
+        f"/api/v1/organizations/{invited_id}/team/members",
+        headers=_auth(owner),
+    )
+    assert members.status_code == 200, members.text
+    matching = [
+        item for item in members.json()["items"] if item["email"] == member_email
+    ]
+    assert len(matching) == 1
+    assert matching[0]["role"] == "VIEWER"
+
+
+def test_concurrent_acceptance_creates_one_membership():
+    database_url = os.getenv("TEST_DATABASE_URL", "").strip()
+    if not database_url:
+        pytest.skip("TEST_DATABASE_URL is not configured")
+
+    suffix = uuid.uuid4().hex[:8]
+    owner_email = f"race-owner-{suffix}@example.com"
+    member_email = f"race-member-{suffix}@example.com"
+    token = generate_invitation_token()
+    engine = create_engine(database_url, pool_pre_ping=True)
+    organization_id = None
+    user_ids: list[uuid.UUID] = []
+
+    try:
+        with Session(engine) as setup:
+            owner = User(
+                email=owner_email,
+                password_hash=hash_password(PASSWORD),
+            )
+            member = User(
+                email=member_email,
+                password_hash=hash_password(PASSWORD),
+            )
+            organization = Organization(
+                name="Race Workspace",
+                slug=f"race-{suffix}",
+            )
+            setup.add_all([owner, member, organization])
+            setup.flush()
+            setup.add(
+                Membership(
+                    user_id=owner.id,
+                    organization_id=organization.id,
+                    role=Role.OWNER,
+                )
+            )
+            setup.add(
+                OrganizationInvitation(
+                    organization_id=organization.id,
+                    email=member_email,
+                    role="VIEWER",
+                    status=InvitationStatus.PENDING.value,
+                    token_hash=hash_invitation_token(token),
+                    invited_by=owner.id,
+                    expires_at=invitation_expiry(),
+                )
+            )
+            setup.commit()
+            organization_id = organization.id
+            user_ids = [owner.id, member.id]
+
+        barrier = threading.Barrier(2)
+        results: list[object] = []
+        errors: list[BaseException] = []
+
+        def accept_once() -> None:
+            with Session(engine) as db:
+                current = db.scalar(select(User).where(User.email == member_email))
+                assert current is not None
+                try:
+                    barrier.wait(timeout=10)
+                    results.append(accept_invitation(token, current, db))
+                except HTTPException as exc:
+                    results.append(exc)
+                except BaseException as exc:
+                    errors.append(exc)
+
+        workers = [
+            threading.Thread(target=accept_once),
+            threading.Thread(target=accept_once),
+        ]
+        for worker in workers:
+            worker.start()
+        for worker in workers:
+            worker.join(timeout=20)
+
+        assert errors == []
+        assert len(results) == 2
+        successes = [item for item in results if not isinstance(item, HTTPException)]
+        conflicts = [
+            item
+            for item in results
+            if isinstance(item, HTTPException) and item.status_code == 409
+        ]
+        assert len(successes) == 1
+        assert len(conflicts) == 1
+        assert token not in conflicts[0].detail
+
+        with Session(engine) as check:
+            memberships = check.scalar(
+                select(func.count(Membership.id)).where(
+                    Membership.organization_id == organization_id,
+                    Membership.user_id == user_ids[1],
+                )
+            )
+            invitation = check.scalar(
+                select(OrganizationInvitation).where(
+                    OrganizationInvitation.organization_id == organization_id
+                )
+            )
+            assert memberships == 1
+            assert invitation is not None
+            assert invitation.status == InvitationStatus.ACCEPTED.value
+    finally:
+        if organization_id is not None:
+            with Session(engine) as cleanup:
+                cleanup.execute(
+                    SecurityAuditEvent.__table__.delete().where(
+                        SecurityAuditEvent.organization_id == organization_id
+                    )
+                )
+                cleanup.execute(
+                    OrganizationInvitation.__table__.delete().where(
+                        OrganizationInvitation.organization_id == organization_id
+                    )
+                )
+                cleanup.execute(
+                    Membership.__table__.delete().where(
+                        Membership.organization_id == organization_id
+                    )
+                )
+                cleanup.execute(
+                    Organization.__table__.delete().where(
+                        Organization.id == organization_id
+                    )
+                )
+                if user_ids:
+                    cleanup.execute(
+                        User.__table__.delete().where(User.id.in_(user_ids))
+                    )
+                cleanup.commit()
+        engine.dispose()

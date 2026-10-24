@@ -1,13 +1,13 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { API_URL, ORGS_PATH } from "@/lib/api";
+import { isSameOrigin } from "@/lib/proxy";
 
 export async function POST(request: NextRequest) {
   const token = (await cookies()).get("nexa_access")?.value;
   if (!token)
     return NextResponse.json({ error: "Sign in required" }, { status: 401 });
-  const origin = request.headers.get("origin");
-  if (origin !== request.nextUrl.origin)
+  if (!isSameOrigin(request))
     return NextResponse.json(
       { error: "Invalid request origin" },
       { status: 403 }

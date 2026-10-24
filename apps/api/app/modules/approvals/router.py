@@ -13,7 +13,6 @@ from app.db.models import (
     Agent,
     WorkflowApproval,
     Role,
-    utc_now,
 )
 from app.db.session import get_db
 from app.modules.auth.dependencies import get_current_user
@@ -32,7 +31,7 @@ from app.modules.approvals.schemas import (
     ApprovalAssignmentCreate,
     ApprovalStats,
 )
-from app.modules.security.audit import record_audit_event
+from app.modules.workflows.router import apply_workflow_decision
 
 router = APIRouter(
     prefix="/api/v1/organizations/{organization_id}/approvals",
@@ -205,73 +204,13 @@ def decide_approval(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    require_approval_role(db, user.id, organization_id)
-
-    approval = db.scalar(
-        select(WorkflowApproval).where(
-            WorkflowApproval.id == approval_id,
-            WorkflowApproval.organization_id == organization_id,
-        )
-    )
-    if not approval:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Approval not found",
-        )
-
-    if approval.status != "PENDING":
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Approval already decided",
-        )
-
-    # Recheck authorization and expiration before executing
-    membership = require_membership(
-        db, user.id, organization_id
-    )
-    if membership.role not in APPROVAL_ROLES:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only Owners and Admins can decide approvals",
-        )
-
-    approval.status = (
-        "APPROVED" if payload.approved else "REJECTED"
-    )
-    approval.decided_by = user.id
-    approval.decided_at = utc_now()
-    db.commit()
-    db.refresh(approval)
-
-    # The review decision is recorded on its own. It is never presented as
-    # evidence that the protected action ran successfully.
-    record_audit_event(
+    """Record a dashboard decision by resuming the checkpointed workflow."""
+    return apply_workflow_decision(
         db,
         organization_id=organization_id,
-        actor_user_id=user.id,
-        action=(
-            "approval.approved" if payload.approved else "approval.rejected"
-        ),
-        resource_type="approval",
-        resource_id=approval.id,
-        resource_name=approval.action,
-        details={
-            "thread_id": approval.thread_id,
-            "agent_id": str(approval.agent_id),
-            "decision": approval.status,
-        },
-        summary=(
-            f"{user.email} "
-            f"{'approved' if payload.approved else 'rejected'} the request "
-            f"“{approval.action}”."
-        ),
-    )
-
-    return ApprovalResponse(
-        id=approval.id,
-        status=approval.status,
-        action=approval.action,
-        thread_id=approval.thread_id,
+        approval_id=approval_id,
+        user=user,
+        approved=payload.approved,
     )
 
 

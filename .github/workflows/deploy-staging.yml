@@ -1,0 +1,111 @@
+name: Deploy staging
+
+# Manual only. Do not run this until the VPS, DNS, and the secrets below exist.
+# A local checkout cannot execute this workflow.
+
+on:
+  workflow_dispatch:
+    inputs:
+      git_sha:
+        description: Full 40-character commit SHA to deploy
+        required: true
+        type: string
+      image_tag:
+        description: Immutable tag (the SHA, or sha- plus its first 12 hex characters). Leave empty to build that commit on the server.
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nexa-staging-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy exact commit
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Validate the requested commit
+        env:
+          GIT_SHA: ${{ inputs.git_sha }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
+        run: |
+          python - <<'PY'
+          import os, re, sys
+          sha = os.environ.get("GIT_SHA", "")
+          tag = os.environ.get("IMAGE_TAG", "")
+          if re.fullmatch(r"[0-9a-f]{40}", sha) is None:
+              print("git_sha must be 40 lowercase hex characters")
+              sys.exit(1)
+          if tag:
+              short = "sha-" + sha[:12]
+              if tag in {"latest", "main", "master", "compose", "previous"} or tag not in {sha, short}:
+                  print("image_tag must be the commit SHA or sha- plus its first 12 hex characters")
+                  sys.exit(1)
+          print("deploy-target-ok")
+          PY
+
+      - name: Checkout the exact commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.git_sha }}
+          fetch-depth: 1
+
+      - name: Confirm the checkout
+        env:
+          GIT_SHA: ${{ inputs.git_sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$GIT_SHA"
+          echo "checkout-matches-sha"
+
+      - name: Require deployment secrets
+        env:
+          STAGING_SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
+          STAGING_SSH_USER: ${{ secrets.STAGING_SSH_USER }}
+          STAGING_SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
+          STAGING_SSH_KNOWN_HOSTS: ${{ secrets.STAGING_SSH_KNOWN_HOSTS }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
+          GHCR_PULL_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
+        run: |
+          missing=""
+          test -n "$STAGING_SSH_HOST" || missing="$missing STAGING_SSH_HOST"
+          test -n "$STAGING_SSH_USER" || missing="$missing STAGING_SSH_USER"
+          test -n "$STAGING_SSH_KEY" || missing="$missing STAGING_SSH_KEY"
+          test -n "$STAGING_SSH_KNOWN_HOSTS" || missing="$missing STAGING_SSH_KNOWN_HOSTS"
+          if [ -n "$IMAGE_TAG" ] && [ -z "$GHCR_PULL_TOKEN" ]; then
+            missing="$missing GHCR_PULL_TOKEN"
+          fi
+          if [ -n "$missing" ]; then
+            echo "missing secrets:$missing"
+            exit 1
+          fi
+          echo "staging-secrets-present"
+
+      - name: Open the SSH session
+        env:
+          GIT_SHA: ${{ inputs.git_sha }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
+          STAGING_SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
+          STAGING_SSH_USER: ${{ secrets.STAGING_SSH_USER }}
+          STAGING_SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
+          STAGING_SSH_KNOWN_HOSTS: ${{ secrets.STAGING_SSH_KNOWN_HOSTS }}
+          STAGING_SSH_PORT: ${{ secrets.STAGING_SSH_PORT }}
+          GHCR_PULL_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
+          REGISTRY_OWNER: ${{ github.repository_owner }}
+        run: |
+          set -eu
+          port="${STAGING_SSH_PORT:-22}"
+          registry="ghcr.io/$(printf '%s' "$REGISTRY_OWNER" | tr '[:upper:]' '[:lower:]')"
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$STAGING_SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+          printf '%s\n' "$STAGING_SSH_KEY" > "$HOME/.ssh/staging_key"
+          chmod 600 "$HOME/.ssh/staging_key"
+          token_b64="$(printf '%s' "$GHCR_PULL_TOKEN" | base64 -w0)"
+          ssh -i "$HOME/.ssh/staging_key" -p "$port" -o BatchMode=yes \
+            "$STAGING_SSH_USER@$STAGING_SSH_HOST" \
+            "GIT_SHA='$GIT_SHA' IMAGE_TAG='$IMAGE_TAG' REGISTRY='$registry' GHCR_USER='$REGISTRY_OWNER' GHCR_PULL_TOKEN_B64='$token_b64' sh -s" \
+            < deploy/staging_remote.sh

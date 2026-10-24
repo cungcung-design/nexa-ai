@@ -13,14 +13,16 @@ export default async function ConversationsPage({
   const conversations = org
     ? asArray<{ id: string; agent_id: string; title: string; created_at: string }>(
         await backendGet<unknown>(
-          `/api/v1/organizations/${org.id}/conversations`
+          `/api/v1/organizations/${org.id}/conversations`,
+          { revalidate: 0 }
         )
       )
     : [];
   const agents = org
     ? asArray<Agent>(
         await backendGet<unknown>(
-          `/api/v1/organizations/${org.id}/agents`
+          `/api/v1/organizations/${org.id}/agents`,
+          { revalidate: 0 }
         )
       )
     : [];

@@ -1,0 +1,48 @@
+# Local staging check only. It is not the public deployment.
+# Isolated container names and host ports keep the development database,
+# Redis, API, and web server untouched.
+# Caddy stays behind the public-edge profile because this machine has no
+# public domain or certificate.
+
+services:
+  caddy:
+    profiles:
+      - public-edge
+
+  postgres:
+    container_name: nexa-staging-local-postgres
+    ports: !override
+      - "127.0.0.1:55435:5432"
+
+  redis:
+    container_name: nexa-staging-local-redis
+    ports: !override
+      - "127.0.0.1:56380:6379"
+
+  migrate:
+    container_name: nexa-staging-local-migrate
+
+  api:
+    container_name: nexa-staging-local-api
+    ports:
+      - "127.0.0.1:18000:8000"
+    environment:
+      FRONTEND_URL: http://127.0.0.1:13000
+      TRUSTED_HOSTS: 127.0.0.1,localhost,api
+      TRUST_PROXY: "false"
+
+  worker:
+    container_name: nexa-staging-local-worker
+
+  web:
+    container_name: nexa-staging-local-web
+    ports:
+      - "127.0.0.1:13000:3000"
+    build:
+      args:
+        NEXT_PUBLIC_API_URL: http://127.0.0.1:18000
+    environment:
+      NODE_ENV: production
+      NEXA_API_URL: http://api:8000
+      NEXT_PUBLIC_API_URL: http://127.0.0.1:18000
+      COOKIE_SECURE: "false"

@@ -97,6 +97,25 @@ describe("resolveAfterAuth", () => {
     expect(await resolveAfterAuth()).toBe("/verify-email");
   });
 
+  it("keeps an invitation path through address confirmation", async () => {
+    stubFetch({
+      ok: true,
+      body: state({ email_verified: false }),
+    });
+
+    expect(await resolveAfterAuth("/invitations/invite-token")).toBe(
+      "/verify-email?next=%2Finvitations%2Finvite-token"
+    );
+  });
+
+  it("returns a verified account to the invitation instead of a new workspace", async () => {
+    stubFetch({ ok: true, body: state() });
+
+    expect(await resolveAfterAuth("/invitations/invite-token")).toBe(
+      "/invitations/invite-token"
+    );
+  });
+
   it("sends an account that is still in the flow to the welcome", async () => {
     stubFetch({ ok: true, body: state() });
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CheckIcon } from "@/components/billing/icons";
 import { formatMoney } from "@/components/billing/format";
@@ -193,7 +194,10 @@ export function PlansGrid({
           const price = priceOf(plan, interval);
           const isCurrent = plan.key === currentPlan;
           const highlighted = plan.popular || isCurrent;
-          const selectable = !isCurrent && plan.key !== "BUSINESS";
+          const checkoutUnavailable =
+            !providerConfigured && plan.key !== "FREE" && !plan.contact_sales;
+          const selectable =
+            !isCurrent && !plan.contact_sales && !checkoutUnavailable;
 
           return (
             <article
@@ -254,32 +258,41 @@ export function PlansGrid({
                 ))}
               </ul>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setError("");
-                  setNotice("");
-                  setPending(plan);
-                }}
-                disabled={!selectable || !canManage || busy}
-                className={`plan-button flex items-center justify-center w-full min-h-[43px] mt-auto p-[9px_12px] rounded-full font-semibold text-[16px] ${
-                  highlighted
-                    ? "border border-[#101010] bg-[#101010] text-white cursor-pointer"
-                    : "border border-[#d5d5d5] bg-transparent text-[#666]"
-                } ${
-                  !selectable || !canManage
-                    ? "opacity-60 cursor-not-allowed"
-                    : "cursor-pointer"
-                }`}
-              >
-                {isCurrent
-                  ? "Current Plan"
-                  : plan.contact_sales
-                    ? "Contact Sales"
-                    : plan.key === "FREE"
-                      ? "Downgrade"
-                      : "Choose Plan"}
-              </button>
+              {plan.contact_sales ? (
+                <Link
+                  href="/contact"
+                  className="plan-button flex items-center justify-center w-full min-h-[43px] mt-auto p-[9px_12px] rounded-full border border-[#d5d5d5] bg-transparent text-[#666] font-semibold text-[16px]"
+                >
+                  Contact Sales
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setError("");
+                    setNotice("");
+                    setPending(plan);
+                  }}
+                  disabled={!selectable || !canManage || busy}
+                  className={`plan-button flex items-center justify-center w-full min-h-[43px] mt-auto p-[9px_12px] rounded-full font-semibold text-[16px] ${
+                    highlighted
+                      ? "border border-[#101010] bg-[#101010] text-white cursor-pointer"
+                      : "border border-[#d5d5d5] bg-transparent text-[#666]"
+                  } ${
+                    !selectable || !canManage
+                      ? "opacity-60 cursor-not-allowed"
+                      : "cursor-pointer"
+                  }`}
+                >
+                  {isCurrent
+                    ? "Current Plan"
+                    : checkoutUnavailable
+                      ? "Checkout unavailable"
+                      : plan.key === "FREE"
+                        ? "Downgrade"
+                        : "Choose Plan"}
+                </button>
+              )}
             </article>
           );
         })}

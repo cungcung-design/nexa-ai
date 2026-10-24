@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { backendGet, asArray, type AgentVersion } from "@/lib/api";
+import { backendGet, asArray, type Agent, type AgentVersion } from "@/lib/api";
 import { authorizedOrganization } from "@/lib/workspace";
 
 export default async function AgentVersionsPage({
@@ -11,11 +11,16 @@ export default async function AgentVersionsPage({
   const org = await authorizedOrganization(organizationId);
   if (!org) notFound();
 
-  const versions = asArray<AgentVersion>(
-    await backendGet<unknown>(
-      `/api/v1/organizations/${org.id}/agents/${encodeURIComponent(agentId)}/versions`
-    )
-  );
+  const [agent, versions] = await Promise.all([
+    backendGet<Agent>(
+      `/api/v1/organizations/${org.id}/agents/${encodeURIComponent(agentId)}`,
+      { revalidate: 0 }
+    ),
+    backendGet<unknown>(
+      `/api/v1/organizations/${org.id}/agents/${encodeURIComponent(agentId)}/versions`,
+      { revalidate: 0 }
+    ).then((data) => asArray<AgentVersion>(data)),
+  ]);
 
   return (
     <div className="w-full max-w-4xl bg-white border border-gray-200/80 rounded-2xl p-6 shadow-xs">
@@ -29,8 +34,17 @@ export default async function AgentVersionsPage({
         {versions.length > 0 ? (
           versions.map((v, idx) => {
             const isLast = idx === versions.length - 1;
-            const status = idx === 0 ? "Draft" : "Previous version";
-            const statusColor = idx === 0 ? "bg-amber-50 text-amber-700 border border-amber-200/60" : "bg-gray-100 text-gray-600 border border-gray-200/60";
+            const isPublished = agent?.published_version_id === v.id;
+            const status = isPublished
+              ? "Published"
+              : idx === 0
+              ? "Draft"
+              : "Previous version";
+            const statusColor = isPublished
+              ? "bg-emerald-50 text-emerald-700 border border-emerald-200/60"
+              : idx === 0
+              ? "bg-amber-50 text-amber-700 border border-amber-200/60"
+              : "bg-gray-100 text-gray-600 border border-gray-200/60";
 
             return (
               <div
@@ -42,8 +56,8 @@ export default async function AgentVersionsPage({
                 )}
                 <div className="flex items-center gap-3 mb-1">
                   <span
-                    className={`absolute left-0 -top-0.5 w-2 h-2 rounded-full bg-gray-400 ${
-                      idx === 0 ? "bg-amber-500" : "bg-gray-400"
+                    className={`absolute left-0 -top-0.5 w-2 h-2 rounded-full ${
+                      isPublished ? "bg-emerald-500" : idx === 0 ? "bg-amber-500" : "bg-gray-400"
                     }`}
                   />
                   <div className="flex items-center gap-2">
@@ -56,11 +70,11 @@ export default async function AgentVersionsPage({
                   </div>
                 </div>
                 <p className="text-xs text-gray-500 pl-4">
-                  {idx === 0
+                  {isPublished
+                    ? "Currently used by the production deployment"
+                    : idx === 0
                     ? "Updated instructions and retrieval settings"
-                    : idx === 1
-                      ? "Currently used by the production deployment"
-                      : "Available for comparison"}
+                    : "Available for comparison"}
                 </p>
               </div>
             );
@@ -70,12 +84,6 @@ export default async function AgentVersionsPage({
             <p className="text-xs text-gray-400">No versions saved yet.</p>
           </div>
         )}
-      </div>
-
-      <div className="mt-8 pt-4 border-t border-gray-100">
-        <p className="text-xs text-gray-400 text-center">
-          Illustrative version history.
-        </p>
       </div>
     </div>
   );

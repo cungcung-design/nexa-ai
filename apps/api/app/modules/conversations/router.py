@@ -8,7 +8,7 @@ from fastapi import (
 from openai import OpenAIError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from app.ai.runtime import run_agent
+from app.ai.runtime import ToolApprovalRequired, run_agent
 from app.db.models import (
     User,
     Agent,
@@ -28,6 +28,7 @@ from app.modules.conversations.schemas import (
     ConversationChatResponse,
 )
 from app.modules.billing.usage import check_request_quota, record_request_usage
+from app.modules.security.rate_limit import enforce_ai_limit
 
 router = APIRouter(
     prefix="/api/v1/organizations/{organization_id}/conversations",
@@ -40,15 +41,17 @@ def get_owned_conversation(
     organization_id: UUID,
     conversation_id: UUID,
     user_id: UUID,
+    *,
+    lock: bool = False,
 ) -> Conversation:
-    conversation = db.scalar(
-        select(Conversation).where(
-            Conversation.id == conversation_id,
-            Conversation.organization_id
-            == organization_id,
-            Conversation.created_by == user_id,
-        )
+    statement = select(Conversation).where(
+        Conversation.id == conversation_id,
+        Conversation.organization_id == organization_id,
+        Conversation.created_by == user_id,
     )
+    if lock:
+        statement = statement.with_for_update()
+    conversation = db.scalar(statement)
     if conversation is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -182,6 +185,7 @@ def chat_in_conversation(
     db: Session = Depends(get_db),
 ):
     require_membership(db, user.id, organization_id)
+    enforce_ai_limit(f"user:{user.id}")
     check_request_quota(db, organization_id)
 
     conversation = get_owned_conversation(
@@ -189,6 +193,7 @@ def chat_in_conversation(
         organization_id,
         conversation_id,
         user.id,
+        lock=True,
     )
 
     if len(payload.message.strip()) == 0:
@@ -210,11 +215,29 @@ def chat_in_conversation(
             status_code=404,
             detail="Agent unavailable",
         )
+    except ToolApprovalRequired as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        )
     except OpenAIError:
         raise HTTPException(
             status_code=502,
             detail="LLM provider request failed",
         )
+    except RuntimeError:
+        raise HTTPException(
+            status_code=502,
+            detail="Agent tool execution limit exceeded",
+        )
+
+    answer = result.get("answer")
+    if not isinstance(answer, str) or not answer.strip():
+        raise HTTPException(
+            status_code=502,
+            detail="LLM provider request failed",
+        )
+    answer = answer.strip()
 
     record_request_usage(
         db,
@@ -235,7 +258,7 @@ def chat_in_conversation(
                 organization_id=organization_id,
                 conversation_id=conversation.id,
                 role="assistant",
-                content=result["answer"],
+                content=answer,
             ),
         ]
     )
@@ -243,7 +266,7 @@ def chat_in_conversation(
 
     return ConversationChatResponse(
         conversation_id=conversation.id,
-        answer=result["answer"],
+        answer=answer,
         model=result["model"],
         sources=result["sources"],
         prompt_tokens=result["prompt_tokens"],

@@ -21,6 +21,7 @@ from app.modules.agents.chat_schemas import (
     AgentChatResponse,
 )
 from app.modules.billing.usage import check_request_quota, record_request_usage
+from app.modules.security.rate_limit import enforce_ai_limit
 
 router = APIRouter(
     prefix="/api/v1/organizations/{organization_id}/agents",
@@ -40,6 +41,7 @@ def chat_with_agent(
     db: Session = Depends(get_db),
 ):
     require_membership(db, user.id, organization_id)
+    enforce_ai_limit(f"user:{user.id}")
     check_request_quota(db, organization_id)
 
     try:
@@ -75,6 +77,13 @@ def chat_with_agent(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Agent tool execution limit exceeded",
         )
+
+    if not isinstance(result.get("answer"), str) or not result["answer"].strip():
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="LLM provider request failed",
+        )
+    result["answer"] = result["answer"].strip()
 
     record_request_usage(
         db,

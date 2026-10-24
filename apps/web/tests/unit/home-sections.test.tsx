@@ -1,4 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/",
+}));
 import { render, screen, within } from "@testing-library/react";
 
 import { PublicHomePage } from "@/components/public-home-page";
@@ -9,7 +13,14 @@ import { PricingSection } from "@/components/public/pricing-section";
 import { SecuritySection } from "@/components/public/security-section";
 import { SolutionsSection } from "@/components/public/solutions-section";
 
-const NAV_ITEMS = ["Product", "Features", "Solutions", "Pricing", "Security", "Contact"];
+const NAV_LINKS: Record<string, string> = {
+  Product: "/#product",
+  Features: "/features",
+  Solutions: "/solutions",
+  Pricing: "/pricing",
+  Security: "/security",
+  Contact: "/contact",
+};
 
 const PLANS = [
   { name: "Free", price: "$0" },
@@ -24,10 +35,10 @@ describe("homepage navigation", () => {
 
     const nav = screen.getByRole("navigation", { name: "Main navigation" });
 
-    for (const label of NAV_ITEMS) {
+    for (const [label, href] of Object.entries(NAV_LINKS)) {
       expect(within(nav).getByRole("link", { name: label })).toHaveAttribute(
         "href",
-        `#${label.toLowerCase()}`
+        href
       );
       expect(screen.getByRole("heading", { name: label })).toBeInTheDocument();
     }

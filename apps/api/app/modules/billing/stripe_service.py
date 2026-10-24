@@ -8,6 +8,7 @@ billing screens can show an accurate "provider not connected" state.
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 import stripe
@@ -37,19 +38,29 @@ def _configure() -> None:
 
 
 def provider_configured() -> bool:
-    """True when a usable Stripe secret key is configured."""
+    """True when a Stripe test secret key is configured.
+
+    Live keys are refused here as well as at production boot. An empty value
+    leaves billing disconnected.
+    """
     key = (settings.stripe_secret_key or "").strip()
-    if not key or "REPLACE" in key.upper():
-        return False
-    return True
+    return key.startswith("sk_test_") and "REPLACE" not in key.upper()
 
 
 def webhook_configured() -> bool:
     """True when a Stripe webhook signing secret is configured."""
     secret = (settings.stripe_webhook_secret or "").strip()
-    if not secret or "REPLACE" in secret.upper():
-        return False
-    return True
+    return secret.startswith("whsec_") and "REPLACE" not in secret.upper()
+
+
+def ensure_test_mode_event(event) -> None:
+    """Refuse a live-mode Stripe event before it can change billing state."""
+    if isinstance(event, dict):
+        livemode = bool(event.get("livemode"))
+    else:
+        livemode = bool(getattr(event, "livemode", False))
+    if livemode:
+        raise BillingProviderError("Live Stripe events are not accepted")
 
 
 def _require_provider() -> None:
@@ -68,7 +79,9 @@ def _call(operation, *args, **kwargs):
     try:
         return operation(*args, **kwargs)
     except stripe.error.StripeError as exc:  # pragma: no cover - network path
-        raise BillingProviderError(str(exc)) from exc
+        raise BillingProviderError(
+            "The billing provider rejected the request"
+        ) from exc
 
 
 def create_checkout_session(
@@ -104,9 +117,17 @@ def create_checkout_session(
         "cancel_url": cancel_url
         or f"{frontend}/dashboard/organizations/{organization_id}/billing/subscription"
         f"?checkout=canceled",
-        "metadata": {"organization_id": organization_id, "plan": catalog_plan.key},
+        "metadata": {
+            "organization_id": organization_id,
+            "plan": catalog_plan.key,
+            "interval": interval,
+        },
         "subscription_data": {
-            "metadata": {"organization_id": organization_id},
+            "metadata": {
+                "organization_id": organization_id,
+                "plan": catalog_plan.key,
+                "interval": interval,
+            },
         },
         "client_reference_id": organization_id,
         "allow_promotion_codes": True,
@@ -139,6 +160,17 @@ def create_portal_session(
 def retrieve_subscription(subscription_id: str):
     """Retrieve a Stripe subscription."""
     return _call(stripe.Subscription.retrieve, subscription_id)
+
+
+def schedule_provider_cancellation(
+    subscription_id: str, cancel_at_period_end: bool
+):
+    """Tell Stripe whether the subscription ends at the period boundary."""
+    return _call(
+        stripe.Subscription.modify,
+        subscription_id,
+        cancel_at_period_end=cancel_at_period_end,
+    )
 
 
 def list_provider_invoices(customer_id: str, limit: int = 50):
@@ -218,20 +250,29 @@ def normalize_payment_method(payment_method) -> dict[str, Any]:
     }
 
 
+def _invoice_field(invoice, name: str, default=None):
+    try:
+        value = getattr(invoice, name)
+    except AttributeError:
+        return default
+    return default if value is None else value
+
+
 def normalize_invoice(invoice) -> dict[str, Any]:
     """Reduce a Stripe invoice to the values the UI may show."""
+    invoice_id = _invoice_field(invoice, "id", "")
     return {
-        "provider_invoice_id": invoice.id,
-        "number": invoice.number or invoice.id,
-        "status": _invoice_status(invoice.status),
-        "currency": invoice.currency or "usd",
-        "amount_due": invoice.amount_due or 0,
-        "amount_paid": invoice.amount_paid or 0,
-        "tax_amount": invoice.total_taxes_amount or 0,
-        "period_start": _timestamp(invoice.period_start),
-        "period_end": _timestamp(invoice.period_end),
-        "hosted_invoice_url": invoice.hosted_invoice_url,
-        "invoice_pdf": invoice.invoice_pdf,
+        "provider_invoice_id": invoice_id,
+        "number": _invoice_field(invoice, "number", invoice_id),
+        "status": _invoice_status(_invoice_field(invoice, "status")),
+        "currency": _invoice_field(invoice, "currency", "usd"),
+        "amount_due": _invoice_field(invoice, "amount_due", 0) or 0,
+        "amount_paid": _invoice_field(invoice, "amount_paid", 0) or 0,
+        "tax_amount": _tax_amount(invoice),
+        "period_start": _timestamp(_invoice_field(invoice, "period_start")),
+        "period_end": _timestamp(_invoice_field(invoice, "period_end")),
+        "hosted_invoice_url": _invoice_field(invoice, "hosted_invoice_url"),
+        "invoice_pdf": _invoice_field(invoice, "invoice_pdf"),
     }
 
 
@@ -246,10 +287,27 @@ def _invoice_status(status: Optional[str]) -> str:
     return mapping.get(status or "", (status or "DRAFT").upper())
 
 
+def _tax_amount(invoice) -> int:
+    tax = getattr(invoice, "tax", None)
+    if tax is None:
+        tax = getattr(invoice, "total_taxes_amount", None)
+    try:
+        return int(tax or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
 def _timestamp(value) -> Optional[str]:
     if value is None:
         return None
+    if isinstance(value, datetime):
+        moment = value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+        return moment.isoformat()
+    if isinstance(value, (int, float)) or (
+        isinstance(value, str) and value.isdigit()
+    ):
+        return datetime.fromtimestamp(int(value), tz=timezone.utc).isoformat()
     try:
         return value.isoformat()
-    except AttributeError:  # pragma: no cover - defensive
+    except AttributeError:
         return str(value)

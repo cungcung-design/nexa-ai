@@ -93,11 +93,18 @@ export async function fetchOnboardingState(): Promise<OnboardingStateResult> {
  * workspace.
  */
 export async function resolveAfterAuth(next?: string): Promise<string> {
-  const fallback = next && next.startsWith("/") ? next : "/dashboard";
+  const fallback = next && next.startsWith("/") && !next.startsWith("//")
+    ? next
+    : "/dashboard";
   const result = await fetchOnboardingState();
   if (!result.ok) return fallback;
   const state = result.state;
-  if (!state.email_verified) return "/verify-email";
+  if (!state.email_verified) {
+    return next ? `/verify-email?next=${encodeURIComponent(next)}` : "/verify-email";
+  }
+  // An invitation has to be accepted on its own page. Sending the account
+  // into workspace creation here would open a different organization.
+  if (next?.startsWith("/invitations/")) return next;
   if (state.step === "complete") return fallback;
   // An account that already belongs to a workspace of an earlier session
   // keeps the previous behaviour and goes straight to the workspace.

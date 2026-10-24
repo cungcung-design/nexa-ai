@@ -21,7 +21,8 @@ export default async function ApprovalReviewPage({
 
   const approval = org
     ? await backendGet<ApprovalDetail | null>(
-        `/api/v1/organizations/${org.id}/approvals/${approvalId}`
+        `/api/v1/organizations/${org.id}/approvals/${approvalId}`,
+        { revalidate: 0 }
       )
     : null;
 
@@ -178,7 +179,6 @@ export default async function ApprovalReviewPage({
           orgId={organizationId}
           approvalId={approval.id}
           status={approval.status}
-          onDecision={() => {}}
         />
         {decided && approval.decided_by && (
           <p className="mt-3 text-xs text-zinc-500">

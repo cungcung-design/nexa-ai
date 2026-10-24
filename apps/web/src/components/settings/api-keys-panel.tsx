@@ -12,6 +12,7 @@ import {
   SettingsField,
   SettingsInput,
   SettingsSkeleton,
+  settingsSelectClass,
 } from "@/components/settings/design";
 import { useResource } from "@/components/settings/use-resource";
 import {
@@ -48,6 +49,7 @@ export function ApiKeysPanel({ organizationId }: { organizationId: string }) {
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
   const [scopes, setScopes] = useState<string[]>(["agent:read"]);
+  const [expiresIn, setExpiresIn] = useState("30");
   const [secret, setSecret] = useState<CreatedApiKey | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{
@@ -72,9 +74,14 @@ export function ApiKeysPanel({ organizationId }: { organizationId: string }) {
       return;
     }
     setBusy(true);
+    const expiresAt =
+      expiresIn === "never"
+        ? null
+        : new Date(Date.now() + Number(expiresIn) * 24 * 60 * 60 * 1000).toISOString();
     const result = await createApiKey(organizationId, {
       name: name.trim(),
       scopes,
+      expires_at: expiresAt,
     });
     setBusy(false);
     if (!result.ok || !result.data) {
@@ -127,6 +134,19 @@ export function ApiKeysPanel({ organizationId }: { organizationId: string }) {
       text: `“${key.name}” was revoked. Requests with this key are rejected now.`,
     });
     await reload();
+  }
+
+  async function copySecret() {
+    if (!secret?.api_key) return;
+    try {
+      await navigator.clipboard.writeText(secret.api_key);
+      setMessage({ tone: "success", text: "The secret was copied." });
+    } catch {
+      setMessage({
+        tone: "error",
+        text: "The secret could not be copied. Select it and copy it manually.",
+      });
+    }
   }
 
   return (
@@ -193,15 +213,41 @@ export function ApiKeysPanel({ organizationId }: { organizationId: string }) {
               })}
             </div>
           </SettingsField>
+
+          <SettingsField
+            label="Expiration"
+            htmlFor="key-expiration"
+            description="After this time the key is rejected."
+          >
+            <select
+              id="key-expiration"
+              aria-label="Expiration"
+              value={expiresIn}
+              onChange={(event) => setExpiresIn(event.target.value)}
+              className={`${settingsSelectClass} max-w-[420px]`}
+            >
+              <option value="7">7 days</option>
+              <option value="30">30 days</option>
+              <option value="90">90 days</option>
+              <option value="365">365 days</option>
+              <option value="never">No expiration</option>
+            </select>
+          </SettingsField>
         </SettingsCard>
       ) : null}
 
       {secret ? (
         <SettingsBanner tone="success" title="Copy the secret now">
-          <p className="m-0 mt-1 font-mono text-[12px] break-all text-[#171717]">
+          <p
+            data-testid="api-key-secret"
+            className="m-0 mt-1 font-mono text-[12px] break-all text-[#171717]"
+          >
             {secret.api_key}
           </p>
-          <div className="mt-2">
+          <div className="mt-2 flex flex-wrap gap-2">
+            <SettingsButton variant="secondary" onClick={() => void copySecret()}>
+              Copy secret
+            </SettingsButton>
             <SettingsButton
               variant="secondary"
               onClick={() => setSecret(null)}
@@ -227,6 +273,19 @@ export function ApiKeysPanel({ organizationId }: { organizationId: string }) {
       ) : null}
 
       {loading ? <SettingsSkeleton label="Loading the API keys" /> : null}
+
+      {!creating ? (
+        <div className="flex justify-end">
+          <SettingsButton
+            onClick={() => {
+              setMessage(null);
+              setCreating(true);
+            }}
+          >
+            Create API Key
+          </SettingsButton>
+        </div>
+      ) : null}
 
       <SettingsCard
         icon={<KeyIcon className="size-4" />}
@@ -267,20 +326,24 @@ export function ApiKeysPanel({ organizationId }: { organizationId: string }) {
             </p>
 
             <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
-              <SettingsButton
-                variant="secondary"
-                onClick={() => void rotate(key)}
-                disabled={busy}
-              >
-                Rotate
-              </SettingsButton>
-              <SettingsButton
-                variant="secondary"
-                onClick={() => void revoke(key)}
-                disabled={busy}
-              >
-                Revoke
-              </SettingsButton>
+              {key.is_active ? (
+                <>
+                  <SettingsButton
+                    variant="secondary"
+                    onClick={() => void rotate(key)}
+                    disabled={busy}
+                  >
+                    Rotate
+                  </SettingsButton>
+                  <SettingsButton
+                    variant="secondary"
+                    onClick={() => void revoke(key)}
+                    disabled={busy}
+                  >
+                    Revoke
+                  </SettingsButton>
+                </>
+              ) : null}
             </div>
           </div>
         ))}

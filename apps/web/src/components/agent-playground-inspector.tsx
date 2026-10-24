@@ -1,13 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import {
   Archive,
   FileText,
   Flame,
   Layers,
-  RefreshCw,
   Search,
   TrendingUp,
 } from "lucide-react";
@@ -23,9 +21,19 @@ const INSPECTOR_TABS: { id: string; label: string; icon: React.ElementType }[] =
 export function AgentPlaygroundInspector({
   agentName,
   version,
+  model,
+  temperature,
+  sources = [],
+  promptTokens,
+  completionTokens,
 }: {
   agentName?: string;
   version?: string;
+  model?: string | null;
+  temperature?: number | null;
+  sources?: { filename?: string; document_id?: string }[];
+  promptTokens?: number | null;
+  completionTokens?: number | null;
 }) {
   const [activeTab, setActiveTab] = useState("sources");
 
@@ -57,30 +65,29 @@ export function AgentPlaygroundInspector({
             <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
               Retrieved Documents
             </p>
-            <div className="bg-gray-50 border border-gray-100 rounded-xl p-3">
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-[10px] shrink-0 mt-0.5">
-                  <FileText className="size-3" />
-                </div>
-                <div>
-                  <div className="text-sm font-semibold text-gray-900">
-                    Support Policy Handbook
+            {sources.length > 0 ? (
+              sources.map((source, index) => (
+                <div
+                  key={`${source.document_id ?? source.filename ?? "source"}-${index}`}
+                  className="bg-gray-50 border border-gray-100 rounded-xl p-3"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-[10px] shrink-0 mt-0.5">
+                      <FileText className="size-3" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-semibold text-gray-900">
+                        {source.filename || "Retrieved document"}
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    Refund eligibility and processing timeline
-                  </p>
-                  <Link
-                    href="/dashboard/organizations/1/knowledge/1/documents/1"
-                    className="text-xs text-indigo-600 hover:underline font-medium mt-1 inline-block"
-                  >
-                    Open document →
-                  </Link>
                 </div>
-              </div>
-            </div>
-            <p className="text-[10px] text-gray-400 italic">
-              No sources retrieved for this response.
-            </p>
+              ))
+            ) : (
+              <p className="text-[10px] text-gray-400 italic">
+                No sources retrieved for this response.
+              </p>
+            )}
           </div>
         )}
 
@@ -89,27 +96,6 @@ export function AgentPlaygroundInspector({
             <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
               Tool Execution
             </p>
-            <div className="bg-gray-50 border border-gray-100 rounded-xl p-3">
-              <div className="flex items-start gap-3">
-                <div className="w-6 h-6 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-[10px] shrink-0 mt-0.5">
-                  <RefreshCw className="size-3" />
-                </div>
-                <div>
-                  <div className="text-sm font-semibold text-gray-900">
-                    knowledge_base_search
-                  </div>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    Query: refund policy
-                  </p>
-                  <div className="mt-2 flex items-center gap-2">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-100">
-                      Completed
-                    </span>
-                    <span className="text-xs text-gray-400">120ms</span>
-                  </div>
-                </div>
-              </div>
-            </div>
             <p className="text-[10px] text-gray-400 italic">
               No tool executions recorded yet.
             </p>
@@ -121,35 +107,9 @@ export function AgentPlaygroundInspector({
             <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
               Execution Timeline
             </p>
-            <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 space-y-2">
-              <div className="flex items-start gap-2 text-xs">
-                <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0 mt-1" />
-                <div>
-                  <div className="font-semibold text-gray-900">Message received</div>
-                  <div className="text-gray-500">12:00:01</div>
-                </div>
-              </div>
-              <div className="flex items-start gap-2 text-xs border-l border-gray-200 pl-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 mt-1" />
-                <div>
-                  <div className="font-semibold text-gray-900">Knowledge search</div>
-                  <div className="text-gray-500">120ms</div>
-                </div>
-              </div>
-              <div className="flex items-start gap-2 text-xs border-l border-gray-200 pl-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 mt-1" />
-                <div>
-                  <div className="font-semibold text-gray-900">LLM generation</div>
-                  <div className="text-gray-500">850ms</div>
-                </div>
-              </div>
-            </div>
-            <Link
-              href="/dashboard/organizations/1/analytics/traces/1"
-              className="text-xs text-indigo-600 hover:underline font-medium inline-block"
-            >
-              View full trace →
-            </Link>
+            <p className="text-[10px] text-gray-400 italic">
+              Trace details appear after a response is generated.
+            </p>
           </div>
         )}
 
@@ -161,21 +121,25 @@ export function AgentPlaygroundInspector({
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-gray-50 border border-gray-100 rounded-xl p-3">
                 <p className="text-[10px] text-gray-500 uppercase font-semibold">Prompt Tokens</p>
-                <p className="text-sm font-bold text-gray-900">450</p>
+                <p className="text-sm font-bold text-gray-900">
+                  {promptTokens ?? "—"}
+                </p>
               </div>
               <div className="bg-gray-50 border border-gray-100 rounded-xl p-3">
                 <p className="text-[10px] text-gray-500 uppercase font-semibold">Completion Tokens</p>
-                <p className="text-sm font-bold text-gray-900">120</p>
+                <p className="text-sm font-bold text-gray-900">
+                  {completionTokens ?? "—"}
+                </p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-gray-50 border border-gray-100 rounded-xl p-3">
                 <p className="text-[10px] text-gray-500 uppercase font-semibold">Latency</p>
-                <p className="text-sm font-bold text-gray-900">970ms</p>
+                <p className="text-sm font-bold text-gray-900">—</p>
               </div>
               <div className="bg-gray-50 border border-gray-100 rounded-xl p-3">
                 <p className="text-[10px] text-gray-500 uppercase font-semibold">Est. Cost</p>
-                <p className="text-sm font-bold text-gray-900">$0.0012</p>
+                <p className="text-sm font-bold text-gray-900">—</p>
               </div>
             </div>
           </div>
@@ -188,16 +152,22 @@ export function AgentPlaygroundInspector({
             </p>
             <div className="bg-gray-50 border border-gray-100 rounded-xl p-3">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium text-gray-700">Window Size</span>
-                <span className="text-xs font-semibold text-gray-900">10 messages</span>
+                <span className="text-xs font-medium text-gray-700">Agent</span>
+                <span className="text-xs font-semibold text-gray-900">{agentName || "—"}</span>
               </div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium text-gray-700">Memory Retention</span>
-                <span className="text-xs font-semibold text-gray-900">30 days</span>
+                <span className="text-xs font-medium text-gray-700">Model</span>
+                <span className="text-xs font-semibold text-gray-900">{model || "—"}</span>
+              </div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-medium text-gray-700">Temperature</span>
+                <span className="text-xs font-semibold text-gray-900">
+                  {temperature ?? "—"}
+                </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-gray-700">Organization Policy</span>
-                <span className="text-xs font-semibold text-gray-900">Standard</span>
+                <span className="text-xs font-medium text-gray-700">Version</span>
+                <span className="text-xs font-semibold text-gray-900">{version || "—"}</span>
               </div>
             </div>
             <p className="text-[10px] text-gray-400 italic">

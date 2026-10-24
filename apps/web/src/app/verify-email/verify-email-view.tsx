@@ -3,6 +3,12 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import {
+  readPostAuthPath,
+  rememberPostAuthPath,
+  safeNextPath,
+} from "@/lib/navigation";
+
 type VerificationStatus = {
   email: string;
   verified: boolean;
@@ -24,6 +30,19 @@ const EMAIL_PROVIDERS: { label: string; url: string }[] = [
   { label: "Yahoo Mail", url: "https://mail.yahoo.com/" },
 ];
 
+function verificationHref(url: string, nextPath: string) {
+  let token = "";
+  try {
+    token = new URL(url, "http://localhost").searchParams.get("token") ?? "";
+  } catch {
+    return url;
+  }
+  if (!token) return url;
+  const params = new URLSearchParams({ token });
+  if (nextPath.startsWith("/invitations/")) params.set("next", nextPath);
+  return `/verify-email?${params.toString()}`;
+}
+
 function formatCountdown(seconds: number) {
   const minutes = Math.floor(seconds / 60);
   const rest = seconds % 60;
@@ -36,7 +55,13 @@ function formatCountdown(seconds: number) {
  * The page shows the address of the signed in user, sends a new verification
  * email, and confirms the address with the token of the link in the inbox.
  */
-export function VerifyEmailView({ token }: { token: string | null }) {
+export function VerifyEmailView({
+  token,
+  next,
+}: {
+  token: string | null;
+  next?: string | null;
+}) {
   const [email, setEmail] = useState("");
   const [verified, setVerified] = useState(false);
   const [countdown, setCountdown] = useState(0);
@@ -47,6 +72,13 @@ export function VerifyEmailView({ token }: { token: string | null }) {
   const [delivery, setDelivery] = useState<"idle" | "smtp" | "development">("idle");
   const confirmed = useRef(false);
   const issued = useRef(false);
+  const [continueHref, setContinueHref] = useState("/onboarding/welcome");
+
+  useEffect(() => {
+    const fromQuery = next ? safeNextPath(next) : undefined;
+    if (fromQuery) rememberPostAuthPath(fromQuery);
+    setContinueHref(fromQuery ?? readPostAuthPath() ?? "/onboarding/welcome");
+  }, [next]);
 
   // The countdown of the resend button.
   useEffect(() => {
@@ -210,8 +242,9 @@ export function VerifyEmailView({ token }: { token: string | null }) {
 
         {verified ? (
           <p className="m-0 text-[13px] leading-[1.6] text-[#8a839e]">
-            Your email address is confirmed. Continue with the setup of your
-            workspace.
+            {continueHref.startsWith("/invitations/")
+              ? "Your email address is confirmed. Continue to the workspace invitation."
+              : "Your email address is confirmed. Continue with the setup of your workspace."}
           </p>
         ) : delivery === "development" ? (
           <p className="m-0 text-[13px] leading-[1.6] text-[#8a839e]">
@@ -271,7 +304,7 @@ export function VerifyEmailView({ token }: { token: string | null }) {
         {link && !verified && (
           <Link
             className="mt-[14px] inline-flex min-h-[35px] min-w-[146px] items-center justify-center rounded-[6px] border border-[#9169ff] bg-gradient-to-r from-[#9361ff] to-[#7542ff] px-5 text-[12px] font-semibold text-white no-underline shadow-sm transition-all hover:brightness-105"
-            href={link}
+            href={verificationHref(link, continueHref)}
           >
             Verify your email
           </Link>
@@ -290,7 +323,8 @@ export function VerifyEmailView({ token }: { token: string | null }) {
         {verified && (
           <Link
             className="mt-4 inline-flex min-h-[35px] min-w-[146px] items-center justify-center rounded-[6px] border border-[#9169ff] bg-gradient-to-r from-[#9361ff] to-[#7542ff] px-5 text-[12px] font-semibold text-white no-underline shadow-sm transition-all hover:brightness-105"
-            href="/onboarding/welcome"
+            href={continueHref}
+            onClick={() => rememberPostAuthPath(undefined)}
           >
             Continue
           </Link>

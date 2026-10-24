@@ -100,6 +100,18 @@ def _pdf_bytes(text: str) -> bytes:
     return buffer.getvalue()
 
 
+def _index_document(document_id: str, organization_id: str) -> None:
+    """Run the production indexing task in this process.
+
+    Upload stays asynchronous. The test does not wait on a separate worker.
+    """
+    from app.worker.tasks import process_document
+
+    outcome = process_document.apply(args=[document_id, organization_id])
+    assert outcome.successful(), outcome.traceback
+    assert outcome.result["status"] == "READY"
+
+
 @pytest.fixture
 def client():
     with TestClient(app) as test_client:
@@ -315,9 +327,19 @@ def test_agent_lifecycle_permissions_and_knowledge_retrieval(client: TestClient)
                 )
             },
         )
-        assert upload.status_code == 201, upload.text
-        assert upload.json()["status"] == "READY"
+        assert upload.status_code == 202, upload.text
+        assert upload.json()["status"] == "PENDING"
         assert secret not in upload.text
+        _index_document(upload.json()["id"], org_id)
+        indexed = client.get(
+            f"/api/v1/organizations/{org_id}/knowledge/{knowledge_base_id}/documents",
+            headers=_auth(owner),
+        )
+        assert indexed.status_code == 200, indexed.text
+        ready = next(
+            item for item in indexed.json() if item["id"] == upload.json()["id"]
+        )
+        assert ready["status"] == "READY"
 
         viewer_upload = client.post(
             f"/api/v1/organizations/{org_id}/knowledge/{knowledge_base_id}/documents",
@@ -343,7 +365,7 @@ def test_agent_lifecycle_permissions_and_knowledge_retrieval(client: TestClient)
                 )
             },
         )
-        assert rejected.status_code == 400
+        assert rejected.status_code == 415
         assert secret not in rejected.text
         assert "do not echo" not in rejected.text
 
@@ -358,8 +380,9 @@ def test_agent_lifecycle_permissions_and_knowledge_retrieval(client: TestClient)
                 )
             },
         )
-        assert pdf_upload.status_code == 201, pdf_upload.text
-        assert pdf_upload.json()["status"] == "READY"
+        assert pdf_upload.status_code == 202, pdf_upload.text
+        assert pdf_upload.json()["status"] == "PENDING"
+        _index_document(pdf_upload.json()["id"], org_id)
 
         search = client.post(
             f"/api/v1/organizations/{org_id}/knowledge/{knowledge_base_id}/search",

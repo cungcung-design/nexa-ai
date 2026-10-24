@@ -1,5 +1,12 @@
 import os
 
+# Tests must write workflow checkpoints to the test database. Set this
+# before the application is imported so the checkpointer never falls
+# through to the development database.
+_test_database_url = os.getenv("TEST_DATABASE_URL", "").strip()
+if _test_database_url:
+    os.environ["CHECKPOINT_DATABASE_URL"] = _test_database_url
+
 import pytest
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session

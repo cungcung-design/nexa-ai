@@ -42,10 +42,14 @@ class OrganizationAPIKey(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, nullable=False
     )
+    expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     revoked_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
 
     __table_args__ = (
         Index("ix_organization_api_keys_org_active", "organization_id", "is_active"),
+        Index("uq_organization_api_keys_key_hash", "key_hash", unique=True),
     )

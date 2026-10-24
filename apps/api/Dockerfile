@@ -2,11 +2,12 @@ FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV HF_HOME=/opt/hf
+ENV HUGGINGFACE_HUB_CACHE=/opt/hf/hub
+ENV SENTENCE_TRANSFORMERS_HOME=/opt/hf/sentence-transformers
+ENV HF_HUB_DISABLE_TELEMETRY=1
 
 WORKDIR /app
-
-RUN addgroup --system appgroup \
-    && adduser --system --ingroup appgroup appuser
 
 COPY requirements.txt .
 
@@ -15,7 +16,14 @@ RUN pip install --no-cache-dir \
 
 COPY . .
 
-RUN mkdir -p /app/storage/documents
+RUN groupadd --gid 1000 appgroup \
+    && useradd --uid 1000 --gid 1000 --create-home --shell /usr/sbin/nologin appuser \
+    && mkdir -p /app/storage/documents /app/storage/audit-exports /opt/hf \
+    && python scripts/prefetch_embedding_model.py \
+    && chown -R appuser:appgroup /app /opt/hf
+
+ENV HF_HUB_OFFLINE=1
+ENV TRANSFORMERS_OFFLINE=1
 
 USER appuser
 

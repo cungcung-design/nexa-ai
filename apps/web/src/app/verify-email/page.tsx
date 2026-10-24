@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { safeNextPath } from "@/lib/navigation";
 import { VerifyEmailView } from "./verify-email-view";
 
 export const metadata: Metadata = {
@@ -19,5 +20,5 @@ export default async function VerifyEmailPage({
   const query = await searchParams;
   const token = Array.isArray(query.token) ? query.token[0] : query.token;
 
-  return <VerifyEmailView token={token ?? null} />;
+  return <VerifyEmailView token={token ?? null} next={safeNextPath(query.next) ?? null} />;
 }

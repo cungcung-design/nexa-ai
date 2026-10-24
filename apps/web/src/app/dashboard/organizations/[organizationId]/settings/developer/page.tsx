@@ -2,6 +2,8 @@ import { ApiKeysPanel } from "@/components/settings/api-keys-panel";
 import { WorkspaceSettingsShell } from "@/components/settings/workspace-shell";
 import { authorizedOrganization } from "@/lib/workspace";
 
+export const instant = false;
+
 export default async function WorkspaceDeveloperPage({
   params,
 }: {

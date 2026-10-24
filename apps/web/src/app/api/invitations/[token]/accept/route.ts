@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { API_URL } from "@/lib/api";
+import { isSameOrigin } from "@/lib/proxy";
 
 /**
  * Accept a workspace invitation. The recipient is not a member of the
@@ -17,8 +18,7 @@ export async function POST(
   if (!access)
     return NextResponse.json({ error: "Sign in required" }, { status: 401 });
 
-  const origin = request.headers.get("origin");
-  if (origin !== request.nextUrl.origin)
+  if (!isSameOrigin(request))
     return NextResponse.json(
       { error: "Invalid request origin" },
       { status: 403 }

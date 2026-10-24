@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 
 import { EyeIcon, GoogleIcon } from "@/components/public/auth-icons";
+import { rememberPostAuthPath, verificationPath } from "@/lib/navigation";
 import { resolveAfterAuth } from "@/lib/onboarding";
 
 const MIN_PASSWORD_LENGTH = 12;
@@ -98,10 +99,12 @@ export function AuthForm({ mode, next }: { mode: AuthMode; next?: string }) {
           ? "Account created. Confirm your email address..."
           : "Signed in. Redirecting to your workspace..."
       );
-      // A new account confirms the address first, an account that still runs
-      // through the onboarding continues there.
+      // A new account confirms the address first. The invitation path is
+      // kept so confirmation returns to that workspace instead of creating
+      // a new one.
+      if (next) rememberPostAuthPath(next);
       const target = isRegister
-        ? "/verify-email"
+        ? verificationPath(next)
         : await resolveAfterAuth(next);
       window.location.assign(target);
     } catch {
@@ -225,11 +228,19 @@ export function AuthForm({ mode, next }: { mode: AuthMode; next?: string }) {
       <p className="nx-auth-switch">
         {isRegister ? (
           <>
-            Already have an account? <Link href="/login">Log in</Link>
+            Already have an account?{" "}
+            <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"}>
+              Log in
+            </Link>
           </>
         ) : (
           <>
-            Don&apos;t have an account? <Link href="/register">Sign up</Link>
+            Don&apos;t have an account?{" "}
+            <Link
+              href={next ? `/register?next=${encodeURIComponent(next)}` : "/register"}
+            >
+              Sign up
+            </Link>
           </>
         )}
       </p>

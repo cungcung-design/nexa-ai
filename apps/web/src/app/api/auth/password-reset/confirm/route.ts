@@ -4,6 +4,7 @@ import {
   AUTH_PASSWORD_RESET_CONFIRM_PATH,
   forwardToAuthService,
 } from "@/lib/auth-proxy";
+import { sessionCookieOptions } from "@/lib/session-cookie";
 
 const MIN_PASSWORD_LENGTH = 12;
 
@@ -46,12 +47,6 @@ export async function POST(request: NextRequest) {
 
   const response = NextResponse.json({ ok: true });
   // The password of the account changed, so the old session is worthless.
-  response.cookies.set("nexa_access", "", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 0,
-  });
+  response.cookies.set("nexa_access", "", sessionCookieOptions(0));
   return response;
 }

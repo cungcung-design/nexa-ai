@@ -13,7 +13,8 @@ export default async function AgentDetailPage({
   if (!org) notFound();
 
   const agent = await backendGet<Agent>(
-    `/api/v1/organizations/${org.id}/agents/${encodeURIComponent(agentId)}`
+    `/api/v1/organizations/${org.id}/agents/${encodeURIComponent(agentId)}`,
+    { revalidate: 0 }
   );
   if (!agent || agent.id !== agentId) notFound();
 
