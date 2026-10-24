@@ -147,7 +147,18 @@ test("dashboard approval resumes after the API process restarts", async ({ page 
   await restartApi();
 
   await page.getByRole("button", { name: "Approve" }).click();
-  await expect(page.getByText("Decision already recorded")).toBeVisible();
+  const recorded = page.getByText("Decision already recorded");
+  const alert = page.getByRole("alert");
+  const decisionDeadline = Date.now() + 30_000;
+  let alertText = "";
+  while (Date.now() < decisionDeadline) {
+    if (await recorded.isVisible()) break;
+    if (await alert.isVisible()) alertText = (await alert.innerText()).trim();
+    await delay(250);
+  }
+  if (!(await recorded.isVisible())) {
+    throw new Error(alertText || "Decision was not recorded after the API restart");
+  }
   await page.reload();
   await expect(page.getByText("APPROVED", { exact: true })).toBeVisible();
   expect(workflowOutcome(pending.thread_id)).toBe("Demo note created: after api restart");
@@ -200,7 +211,7 @@ async function restartApi() {
       "bash",
       [
         "-lc",
-        "pid=$(ss -ltnp 'sport = :8000' | sed -nE 's/.*pid=([0-9]+).*/\\1/p' | head -n 1); test -n \"$pid\" || { echo 'API listener not found' >&2; exit 1; }; kill \"$pid\"",
+        "pid=$(ss -ltnp 'sport = :8000' | sed -nE 's/.*pid=([0-9]+).*/\\1/p' | head -n 1); test -n \"$pid\" || { echo 'API listener not found' >&2; exit 1; }; kill \"$pid\" || true; for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do ss -ltn 'sport = :8000' | grep -q ':8000' || exit 0; sleep 0.5; done; kill -9 \"$pid\" || true; sleep 0.5",
       ],
       { stdio: "pipe" }
     );
@@ -214,7 +225,7 @@ async function restartApi() {
   const deadline = Date.now() + 120000;
   while (Date.now() < deadline) {
     try {
-      const response = await fetch("http://127.0.0.1:8000/openapi.json");
+      const response = await fetch("http://127.0.0.1:8000/ready");
       if (response.ok) return;
     } catch {
       // The listener is still coming back.
