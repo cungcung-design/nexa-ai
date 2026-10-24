@@ -1,10 +1,18 @@
 import { execFileSync, spawn } from "node:child_process";
+import { existsSync } from "node:fs";
+import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { expect, test, type Page } from "@playwright/test";
 
 const PASSWORD = "Studio-Approval-Pass";
-const API_CWD = "D:\\Developer\\Projects\\TypeScript\\nexa-ai\\apps\\api";
-const API_PYTHON = `${API_CWD}\\.venv\\Scripts\\python.exe`;
+const API_CWD = path.resolve(__dirname, "../../../api");
+const venvPython =
+  process.platform === "win32"
+    ? path.join(API_CWD, ".venv", "Scripts", "python.exe")
+    : path.join(API_CWD, ".venv", "bin", "python");
+const API_PYTHON =
+  process.env.NEXA_API_PYTHON ||
+  (existsSync(venvPython) ? venvPython : "python");
 
 test.describe.configure({ mode: "serial" });
 
@@ -177,22 +185,33 @@ function workflowOutcome(threadId: string) {
 }
 
 async function restartApi() {
-  execFileSync(
-    "powershell.exe",
-    [
-      "-NoProfile",
-      "-Command",
-      "$line = netstat -ano | Select-String ':8000\\s+.*LISTENING' | Select-Object -First 1; if (-not $line) { throw 'API listener not found' }; $listener = ($line.ToString().Trim() -split '\\s+')[-1]; Stop-Process -Id ([int]$listener) -Force",
-    ],
-    { stdio: "pipe" }
-  );
+  if (process.platform === "win32") {
+    execFileSync(
+      "powershell.exe",
+      [
+        "-NoProfile",
+        "-Command",
+        "$line = netstat -ano | Select-String ':8000\\s+.*LISTENING' | Select-Object -First 1; if (-not $line) { throw 'API listener not found' }; $listener = ($line.ToString().Trim() -split '\\s+')[-1]; Stop-Process -Id ([int]$listener) -Force",
+      ],
+      { stdio: "pipe" }
+    );
+  } else {
+    execFileSync(
+      "bash",
+      [
+        "-lc",
+        "pid=$(ss -ltnp 'sport = :8000' | sed -nE 's/.*pid=([0-9]+).*/\\1/p' | head -n 1); test -n \"$pid\" || { echo 'API listener not found' >&2; exit 1; }; kill \"$pid\"",
+      ],
+      { stdio: "pipe" }
+    );
+  }
   const child = spawn(
     API_PYTHON,
     ["-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8000"],
     { cwd: API_CWD, env: apiEnv(), detached: true, stdio: "ignore" }
   );
   child.unref();
-  const deadline = Date.now() + 45000;
+  const deadline = Date.now() + 120000;
   while (Date.now() < deadline) {
     try {
       const response = await fetch("http://127.0.0.1:8000/openapi.json");

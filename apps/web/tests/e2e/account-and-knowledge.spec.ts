@@ -39,11 +39,15 @@ async function verifyEmail(page: Page) {
 }
 
 function expiredAccessToken(): string {
-  const envPath = path.resolve(__dirname, "../../../api/.env");
-  const env = readFileSync(envPath, "utf8");
-  const match = env.match(/^JWT_SECRET=(.*)$/m);
-  if (!match) throw new Error("JWT secret is not configured");
-  const secret = match[1].trim().replace(/^["']|["']$/g, "");
+  let secret = process.env.JWT_SECRET?.trim() ?? "";
+  if (!secret) {
+    const envPath = path.resolve(__dirname, "../../../api/.env");
+    const env = readFileSync(envPath, "utf8");
+    const match = env.match(/^JWT_SECRET=(.*)$/m);
+    if (!match) throw new Error("JWT secret is not configured");
+    secret = match[1].trim().replace(/^["']|["']$/g, "");
+  }
+  if (!secret) throw new Error("JWT secret is not configured");
   const header = Buffer.from(
     JSON.stringify({ alg: "HS256", typ: "JWT" })
   ).toString("base64url");
